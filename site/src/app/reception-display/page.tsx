@@ -79,13 +79,6 @@ const ReceptionDisplay: React.FC = () => {
                         color="blue"
                         size="md"
                         radius="xl"
-                        // style={{
-                        //     width: '300px',
-                        //     margin: '20px auto',
-                        //     fontSize: '1.5rem',
-                        //     backgroundColor: '#4caf50',
-                        //     display: 'block',
-                        // }}
                         onClick={() => {
                             console.log('受付処理を実行しました');
                         }}
