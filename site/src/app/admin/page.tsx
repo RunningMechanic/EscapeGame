@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import Link from 'next/link'; // Next.js の Link コンポーネントをインポート
+import Link from 'next/link';
+import { Button } from '@mantine/core';
 
 const AdminPage = () => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -10,6 +11,14 @@ const AdminPage = () => {
     { label: '受付表示', href: '/reception-display' },
     { label: '受付操作', href: '/reception-control' },
   ];
+
+  const getBackgroundColor = (index: number) => {
+    return hoveredIndex === index ? 'teal' : 'white';
+  };
+
+  const getTextColor = (index: number) => {
+    return hoveredIndex === index ? 'white' : 'black';
+  };
 
   return (
     <div
@@ -23,29 +32,28 @@ const AdminPage = () => {
       }}
     >
       {buttonLabels.map((button, index) => (
-        <Link key={index} href={button.href} passHref>
-          <button
-            style={{
-              width: '200px',
-              height: '50px',
-              margin: '10px 0',
-              color: '#333',
-              fontWeight: 'bold',
-              fontSize: '1.5rem',
-              border: '1px solid',
-              borderRadius: '5px',
-              boxSizing: 'border-box',
-              cursor: 'pointer',
-              backgroundColor: hoveredIndex === index ? 'green' : 'white',
-              borderColor: hoveredIndex === index ? '#888' : '#ccc',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
-          >
-            {button.label}
-          </button>
-        </Link>
+        <Button
+          key={index}
+          size="xl"
+          variant="filled"
+          component={Link}
+          href={button.href}
+          style={{
+            width: '600px',
+            margin: '30px 0',
+            fontSize: '5rem',
+            backgroundColor: getBackgroundColor(index),
+            color: getTextColor(index),
+            transition: 'all 0.3s ease',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            borderRadius: '1rem'
+          }}
+          onMouseEnter={() => setHoveredIndex(index)}
+          onMouseLeave={() => setHoveredIndex(null)}
+        >
+          {button.label}
+        </Button>
       ))}
     </div>
   );

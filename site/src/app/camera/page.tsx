@@ -10,7 +10,7 @@ const CameraPage = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
-  const [Count, setCount] = useState<number | null>(null); // 列数＋1を格納するステート
+  const [count, setCount] = useState<number | null>(null); // 列数＋1を格納するステート
 
 
   useEffect(() => {
@@ -49,7 +49,7 @@ const CameraPage = () => {
 
           if (code && code.data !== qrCodeData) {
             setQrCodeData(code.data);
-            socket.emit('scan-qr', { Count, qrCodeData });
+            socket.emit('scan-qr', { count, qrCodeData });
           }
         }
       }
@@ -57,7 +57,7 @@ const CameraPage = () => {
 
     const interval = setInterval(scanQRCode, 500); // 500msごとにQRコードをスキャン
     return () => clearInterval(interval);
-  }, [Count, qrCodeData]);
+  }, [count, qrCodeData]);
 
   // qrCodeData が変更されたときにログを出力
   useEffect(() => {
@@ -66,7 +66,7 @@ const CameraPage = () => {
     }
   }, [qrCodeData]);
   useEffect(() => {
-    const fetchColumnCount = async () => {
+    const fetchcount = async () => {
       try {
         const response = await fetch('/api/counter');
         if (!response.ok) {
@@ -74,13 +74,15 @@ const CameraPage = () => {
         }
         const data = await response.json();
         setCount(data.count);
+        console.log('APIレスポンス:', data); // レスポンスを確認
       } catch (error) {
         console.error('列数の取得中にエラーが発生しました:', error);
       }
     };
 
-    fetchColumnCount();
+    fetchcount();
   }, []);
+
   return (
     <div
       style={{
@@ -93,20 +95,20 @@ const CameraPage = () => {
         backgroundColor: '#000', // 背景を黒に設定
       }}
     >
-                <div
-          style={{
-            position: 'absolute',
-            top: '10px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            color: '#fff',
-            fontSize: '1.2rem',
-            fontWeight: 'bold',
-            textShadow: '0 0 5px rgba(0, 0, 0, 0.5)',
-          }}
-        >
-          QRコードをカメラに近づけてね
-        </div>
+      <div
+        style={{
+          position: 'absolute',
+          top: '10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: '#fff',
+          fontSize: '1.2rem',
+          fontWeight: 'bold',
+          textShadow: '0 0 5px rgba(0, 0, 0, 0.5)',
+        }}
+      >
+        QRコードをカメラに近づけてね
+      </div>
       <div
         style={{
           position: 'relative',
@@ -141,8 +143,8 @@ const CameraPage = () => {
           <p>{qrCodeData}</p>
         </div>
       )}
-            {/* 列数＋1を表示 */}
-            {Count !== null && (
+      {/* 列数＋1を表示 */}
+      {count !== null && (
         <div
           style={{
             position: 'absolute',
@@ -153,7 +155,7 @@ const CameraPage = () => {
             fontWeight: 'bold',
           }}
         >
-          <p>機器の番号：{Count}</p>
+          <p>機器の番号：{count}</p>
         </div>
       )}
     </div>

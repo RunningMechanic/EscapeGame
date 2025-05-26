@@ -23,6 +23,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('scan-qr', ({ Count, qrCodeData }) => {
+
     console.log('スキャンされた: count=', Count, 'qr=', qrCodeData);
     console.log('現在のマップ:', numberToSocketMap);
     const targetSocketId = numberToSocketMap.get(Count.toString());
