@@ -76,9 +76,9 @@ const ReceptionDisplay: React.FC = () => {
                 >
                     <Button
                         variant="filled"
-                        color="blue"
-                        size="md"
-                        radius="xl"
+                        color="green"
+                        size="xl"
+                        radius="md"
                         onClick={() => {
                             console.log('受付処理を実行しました');
                         }}
@@ -88,8 +88,8 @@ const ReceptionDisplay: React.FC = () => {
                     <Text
                         style={{
                             position: 'fixed',
-                            bottom: '20px',
-                            right: '20px',
+                            bottom: '10px',
+                            right: '10px',
                             fontSize: '1.5rem',
                             fontWeight: 'bold',
                             color: 'gray',

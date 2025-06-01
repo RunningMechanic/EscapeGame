@@ -34,12 +34,12 @@ const AdminPage = () => {
       {buttonLabels.map((button, index) => (
         <Button
           key={index}
-          size="xl"
           variant="filled"
           component={Link}
           href={button.href}
           style={{
             width: '600px',
+            height: '100px',
             margin: '30px 0',
             fontSize: '5rem',
             backgroundColor: getBackgroundColor(index),

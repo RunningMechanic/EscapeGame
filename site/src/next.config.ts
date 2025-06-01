@@ -2,9 +2,10 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ["https://localhost:3000","*"], // すべてのオリジンを許可
+  allowedDevOrigins: ["https://localhost:3000", "*"], // すべてのオリジンを許可
   async headers() {
     return [
+
       {
         source: "/:path*", // すべてのルートに適用
         headers: [
@@ -15,6 +16,9 @@ const nextConfig = {
         ],
       },
     ];
+  },
+  experimental: {
+    middleware: true, // ミドルウェアを有効化
   },
 };
 
