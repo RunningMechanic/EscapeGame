@@ -12,7 +12,7 @@ const LoginPage = () => {
         const result = await signIn('credentials', {
             id,
             password,
-            redirect: false, // Changed from true
+            redirect: false,
             callbackUrl: '/admin', // This might be ignored with redirect: false, but kept for clarity
         });
         console.log('Client-side signIn result:', result);
