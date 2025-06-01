@@ -2,6 +2,7 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 const authOptions: NextAuthOptions = {
+    session: { strategy: 'jwt' },
     providers: [
         CredentialsProvider({
             name: 'Ninjin Sirisiri',
@@ -26,6 +27,20 @@ const authOptions: NextAuthOptions = {
     ],
     pages: {
         signIn: '/admin-login', // ログインページのパス
+    },
+    callbacks: {
+        async session({ session, token }) {
+            if (token.sub) {
+                session.user.id = token.sub;
+            }
+            return session;
+        },
+        async jwt({ token, user }) {
+            if (user) {
+                token.sub = user.id;
+            }
+            return token;
+        },
     },
 };
 
