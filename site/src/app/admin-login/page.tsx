@@ -2,6 +2,7 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
+import { Container, Title, TextInput, PasswordInput, Button, Stack, Center } from '@mantine/core';
 
 const LoginPage = () => {
     const [id, setId] = useState('');
@@ -31,26 +32,30 @@ const LoginPage = () => {
     };
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '50px' }}>
-            <h1>ログイン</h1>
-            <input
-                type="text"
-                placeholder="ID"
-                value={id}
-                onChange={(e) => setId(e.target.value)}
-                style={{ marginBottom: '10px', padding: '8px', width: '200px' }}
-            />
-            <input
-                type="password"
-                placeholder="パスワード"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{ marginBottom: '10px', padding: '8px', width: '200px' }}
-            />
-            <button onClick={handleLogin} style={{ padding: '10px 20px', backgroundColor: '#007bff', color: '#fff', border: 'none', borderRadius: '5px' }}>
-                ログイン
-            </button>
-        </div>
+        <Container size="xs" p="md">
+            <Center h="80vh">
+                <Stack align="center" gap="md">
+                    <Title order={1} mb="lg">ログイン</Title>
+                    <TextInput
+                        placeholder="ID"
+                        value={id}
+                        onChange={(e) => setId(e.target.value)}
+                        w="100%" // Stack will manage the width, or set a specific width
+                        maw={300} // Max width for the input
+                    />
+                    <PasswordInput
+                        placeholder="パスワード"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        w="100%"
+                        maw={300}
+                    />
+                    <Button onClick={handleLogin} mt="md" color="blue" fullWidth maw={300}>
+                        ログイン
+                    </Button>
+                </Stack>
+            </Center>
+        </Container>
     );
 };
 
