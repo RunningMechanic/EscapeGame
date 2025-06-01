@@ -11,12 +11,22 @@ const LoginPage = () => {
         const result = await signIn('credentials', {
             id,
             password,
-            redirect: true,
-            callbackUrl: '/admin', // 認証成功後にリダイレクトするページ
+            redirect: false, // Changed from true
+            callbackUrl: '/admin', // This might be ignored with redirect: false, but kept for clarity
         });
+        console.log('Client-side signIn result:', result);
 
-        if (!result?.ok) {
-            alert('ログインに失敗しました。IDまたはパスワードを確認してください。');
+        if (result?.ok) {
+            console.log('Authentication successful on client, redirecting to /admin');
+            // Assuming 'next/navigation' and router instance might not be readily available
+            // in this script, using window.location.href for simplicity.
+            // If a Next.js router instance (e.g., from useRouter) is already in use, prefer that.
+            window.location.href = '/admin';
+        } else {
+            // Log the error if it exists, otherwise log a generic message.
+            const errorMessage = result?.error || 'Unknown error during sign in.';
+            console.error('Client-side signIn error:', errorMessage);
+            alert('ログインに失敗しました。IDまたはパスワードを確認してください。 Error: ' + errorMessage);
         }
     };
 

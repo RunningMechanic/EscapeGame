@@ -28,27 +28,27 @@ const authOptions: NextAuthOptions = {
     pages: {
         signIn: '/admin-login', // ログインページのパス
     },
-    callbacks: {
-        async session({ session, token }) {
-            if (token.sub) {
-                session.user.id = token.sub;
-            }
-            return session;
-        },
-        async jwt({ token, user }) {
-            if (user) {
-                token.sub = user.id;
-            }
-            return token;
-        },
-        async signIn({ user, account, profile }) {
-            if (user) {
-                return true;
-            } else {
-                return false;
-            }
-        },
-    },
+    // callbacks: {
+    //     async session({ session, token }) {
+    //         if (token.sub) {
+    //             session.user.id = token.sub;
+    //         }
+    //         return session;
+    //     },
+    //     async jwt({ token, user }) {
+    //         if (user) {
+    //             token.sub = user.id;
+    //         }
+    //         return token;
+    //     },
+    //     async signIn({ user, account, profile }) {
+    //         if (user) {
+    //             return true;
+    //         } else {
+    //             return false;
+    //         }
+    //     },
+    // },
 };
 
 const handler = NextAuth(authOptions);
