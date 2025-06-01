@@ -19,9 +19,6 @@ const LoginPage = () => {
 
         if (result?.ok) {
             console.log('Authentication successful on client, redirecting to /admin');
-            // Assuming 'next/navigation' and router instance might not be readily available
-            // in this script, using window.location.href for simplicity.
-            // If a Next.js router instance (e.g., from useRouter) is already in use, prefer that.
             window.location.href = '/admin';
         } else {
             // Log the error if it exists, otherwise log a generic message.
