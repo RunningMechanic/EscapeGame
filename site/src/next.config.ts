@@ -16,10 +16,7 @@ const nextConfig = {
         ],
       },
     ];
-  },
-  experimental: {
-    middleware: true, // ミドルウェアを有効化
-  },
+  }
 };
 
 module.exports = nextConfig

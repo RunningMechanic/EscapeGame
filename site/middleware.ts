@@ -1,5 +1,5 @@
 import { withAuth } from 'next-auth/middleware';
-console.log('Middleware loaded');
+
 export default withAuth({
     pages: {
         signIn: '/admin-login', // ログインページにリダイレクト
