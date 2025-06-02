@@ -7,6 +7,7 @@ import './ReceptionDisplayPage.css'; // CSSファイルをインポート
 
 const ReceptionGuestCountPage = () => {
     const [selectedButton, setSelectedButton] = useState<number | null>(null);
+    const [isNavigating, setIsNavigating] = useState(false); // 遷移中の状態を管理
     const router = useRouter();
 
     const handleButtonClick = (buttonNumber: number) => {
@@ -14,7 +15,9 @@ const ReceptionGuestCountPage = () => {
     };
 
     const handleConfirmClick = () => {
+        if (isNavigating) return; // 連続遷移を防止
         if (selectedButton !== null) {
+            setIsNavigating(true); // 遷移中に設定
             router.push(`/reception/result?count=${selectedButton}`); // 選択された人数に応じたページに遷移
         } else {
             alert('人数を選択してください！'); // 未選択の場合は警告を表示
@@ -42,6 +45,7 @@ const ReceptionGuestCountPage = () => {
                 w={500}
                 color="pink"
                 onClick={handleConfirmClick} // 決定ボタンのクリックイベント
+                disabled={isNavigating} // 遷移中はボタンを無効化
             >
                 決定
             </Button>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from "react";
-import { Button, Group } from '@mantine/core';
+import { Button, Text, Group } from '@mantine/core';
 import { useRouter } from 'next/navigation';
 import classes from '../modules/style.module.css';
 const EntryPage = () => {
@@ -9,21 +9,23 @@ const EntryPage = () => {
 
     return (
         <div>
+            <Text size="xl" className="row-text">人数を選んでね</Text>
+
             <Group grow>
                 <Button
                     className={classes.entryButton}
                     color="teal"
-                    onClick={() => router.push('/reception/guest-count')}
+                    onClick={() => router.push('/camera')}
                 >
-                    受付する
+                    カメラ
                 </Button>
 
                 <Button
                     className={classes.entryButton}
                     color="indigo"
-                    onClick={() => router.push('/check-in')}
+                    onClick={() => router.push('/check2')}
                 >
-                    予約を確認する
+                    受付番号
                 </Button>
             </Group>
         </div>

@@ -17,35 +17,37 @@ const pool = new Pool({
 // GET メソッドのハンドラー
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const tableName = searchParams.get(process.env.TABLE_NAME || 'receptions');
-  if (!tableName) {
-    return NextResponse.json({ error: 'Invalid table name' }, { status: 400 });
+  const tableName = process.env.TABLE_NAME || 'receptions';
+  const count = searchParams.get('count'); // URLパラメータから人数を取得
+  console.log('Received count:', count);
+  if (!count) {
+    return NextResponse.json({ error: '人数が指定されていません' }, { status: 400 });
   }
 
   try {
-    // 新しい行を挿入してidを取得
+    // IDと人数を保存
     const insertQuery = `
-      INSERT INTO ${tableName} DEFAULT VALUES
+      INSERT INTO ${tableName} (count)
+      VALUES ($1)
       RETURNING id;
     `;
-    const result = await pool.query(insertQuery);
-    const newId = result.rows[0].id;
+    let result;
+    try {
+      result = await pool.query(insertQuery, [parseInt(count)]);
+    } catch (dbError) {
+      console.error('Database error during INSERT:', dbError);
+      return NextResponse.json({ error: 'Database error during INSERT operation' }, { status: 500 });
+    }
 
-    // パラメータ付きのURLを生成
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-    const generatedUrl = `${baseUrl}/reception?number=${newId}`;
+    const newId = result.rows[0]?.id;
+    if (!newId) {
+      console.error('Failed to retrieve new ID from database');
+      return NextResponse.json({ error: 'Failed to retrieve new ID from database' }, { status: 500 });
+    }
 
-    // URLをデータベースに保存
-    const saveUrlQuery = `
-      UPDATE ${tableName}
-      SET url = $1
-      WHERE id = $2;
-    `;
-    await pool.query(saveUrlQuery, [generatedUrl, newId]);
-
-    return NextResponse.json({ url: generatedUrl });
+    return NextResponse.json({ id: newId, count });
   } catch (error) {
-    console.error('Error handling request:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Unexpected error:', error);
+    return NextResponse.json({ error: 'Unexpected internal server error' }, { status: 500 });
   }
 }
