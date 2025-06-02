@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 
-const ReceptionControl: React.FC = () => {
+const ReceptionControlPage: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [message, setMessage] = useState('');
 
@@ -32,4 +32,4 @@ const ReceptionControl: React.FC = () => {
     );
 };
 
-export default ReceptionControl;
+export default ReceptionControlPage;

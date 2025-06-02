@@ -13,5 +13,5 @@ export default withAuth({
 // }
 
 export const config = {
-    matcher: ['/admin'], // Keep matcher broad for now
+    matcher: ['/reception-control'], // Keep matcher broad for now
 };

@@ -5,7 +5,7 @@ import './AdminPage.css';
 
 const AdminPage = () => {
   const buttonLabels = [
-    { label: '受付画面', href: '/reception-display' },
+    { label: '受付画面', href: '/entry' },
     { label: '受付操作', href: '/reception-control' },
   ];
 
