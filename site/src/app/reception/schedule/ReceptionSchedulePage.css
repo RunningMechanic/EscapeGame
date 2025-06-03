@@ -1,0 +1,32 @@
+.schedule-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 20px;
+}
+
+.schedule-title {
+    font-size: 2.5rem; /* タイトルを大きく */
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.schedule-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    padding: 20px;
+}
+
+.schedule-select {
+    font-size: 1.5rem; /* セレクトボックスの文字サイズを大きく */
+}
+
+.schedule-button {
+    font-size: 1.5rem; /* ボタンの文字サイズを大きく */
+    padding: 10px 20px;
+}

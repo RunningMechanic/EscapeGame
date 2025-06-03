@@ -19,6 +19,8 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const tableName = process.env.TABLE_NAME || 'receptions';
   const count = searchParams.get('count'); // URLパラメータから人数を取得
+  const start = searchParams.get('start'); // URLパラメータから開始時間を取得
+  console.log('Received start time:', start);
   console.log('Received count:', count);
   if (!count) {
     return NextResponse.json({ error: '人数が指定されていません' }, { status: 400 });
@@ -27,13 +29,13 @@ export async function GET(req: Request) {
   try {
     // IDと人数を保存
     const insertQuery = `
-      INSERT INTO ${tableName} (count)
-      VALUES ($1)
+      INSERT INTO ${tableName} (count, start)
+      VALUES ($1, $2)
       RETURNING id;
     `;
     let result;
     try {
-      result = await pool.query(insertQuery, [parseInt(count)]);
+      result = await pool.query(insertQuery, [parseInt(count), start]);
     } catch (dbError) {
       console.error('Database error during INSERT:', dbError);
       return NextResponse.json({ error: 'Database error during INSERT operation' }, { status: 500 });

@@ -7,12 +7,13 @@ import { Text, Box } from '@mantine/core';
 const ResultPage = () => {
     const searchParams = useSearchParams();
     const count = searchParams.get('count'); // URLパラメータから人数を取得
+    const start = searchParams.get('start');
     const hasFetched = useRef(false); // API呼び出しを制御するフラグ
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch(`/api/createUrl?count=${count}`, {
+                const response = await fetch(`/api/createUrl?count=${count}&start=${start}`, {
                     method: 'GET',
                 });
                 if (!response.ok) {

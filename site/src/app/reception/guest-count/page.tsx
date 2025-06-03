@@ -2,13 +2,15 @@
 
 import React, { useState } from "react";
 import { Button, Group, Text, Space } from '@mantine/core';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import './ReceptionDisplayPage.css'; // CSSファイルをインポート
 
 const ReceptionGuestCountPage = () => {
     const [selectedButton, setSelectedButton] = useState<number | null>(null);
     const [isNavigating, setIsNavigating] = useState(false); // 遷移中の状態を管理
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const start = searchParams.get('start'); // startパラメータを取得
 
     const handleButtonClick = (buttonNumber: number) => {
         setSelectedButton(buttonNumber);
@@ -18,7 +20,7 @@ const ReceptionGuestCountPage = () => {
         if (isNavigating) return; // 連続遷移を防止
         if (selectedButton !== null) {
             setIsNavigating(true); // 遷移中に設定
-            router.push(`/reception/result?count=${selectedButton}`); // 選択された人数に応じたページに遷移
+            router.push(`/reception/result?count=${selectedButton}&start=${start}`); // 選択された人数に応じたページに遷移
         } else {
             alert('人数を選択してください！'); // 未選択の場合は警告を表示
         }
