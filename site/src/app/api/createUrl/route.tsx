@@ -1,18 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Pool } from 'pg';
-import { config } from 'dotenv';
-
-// .env ファイルの読み込み
-config();
-
-// PostgreSQL 接続設定
-const pool = new Pool({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: Number(process.env.PG_PORT),
-});
+import pool from '../db';
 
 // 時間を分に変換する関数
 function timeToMinutes(time: string): number {
@@ -28,6 +15,13 @@ function isTimeOverlap(start1: string, end1: string, start2: string, end2: strin
   const end2Min = timeToMinutes(end2);
 
   return start1Min < end2Min && start2Min < end1Min;
+}
+
+// トークン生成関数
+function generateToken(id: string): string {
+  const secret = process.env.SESSION_SECRET || 'default-secret';
+  const timestamp = Math.floor(Date.now() / (1000 * 60 * 60)); // 1時間単位
+  return btoa(`${id}-${timestamp}-${secret}`).replace(/[^a-zA-Z0-9]/g, '');
 }
 
 // GET メソッドのハンドラー
@@ -100,11 +94,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Failed to retrieve new ID from database' }, { status: 500 });
     }
 
+    // セッショントークンを生成
+    const token = generateToken(newId.toString());
+
     return NextResponse.json({
       id: newId,
       count,
       start,
       end,
+      token,
       available: true,
       message: '予約が正常に作成されました'
     });

@@ -9,9 +9,20 @@ import { useQRCode } from 'next-qrcode';
 const ResultPage = () => {
     const { Canvas } = useQRCode();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const count = searchParams.get('count'); // URLパラメータから人数を取得
+    const start = searchParams.get('start');
+    const hasFetched = useRef(false); // API呼び出しを制御するフラグ
+    const [id, setId] = useState<string | null>(null); // APIから取得したID
+    const [token, setToken] = useState<string | null>(null); // APIから取得したトークン
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     const QRCode = () => {
+        if (!id || !token) return null;
+
         return <Canvas
-            text={`${process.env.NEXT_PUBLIC_QR_URL}/check-id?id=${id}`}
+            text={`${process.env.NEXT_PUBLIC_QR_URL}/check-id?id=${id}&token=${token}`}
             options={{
                 errorCorrectionLevel: 'M',
                 margin: 3,
@@ -24,13 +35,6 @@ const ResultPage = () => {
             }}
         />;
     };
-    const searchParams = useSearchParams();
-    const count = searchParams.get('count'); // URLパラメータから人数を取得
-    const start = searchParams.get('start');
-    const hasFetched = useRef(false); // API呼び出しを制御するフラグ
-    const [id, setId] = useState<string | null>(null); // APIから取得したID
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -52,6 +56,7 @@ const ResultPage = () => {
                 }
 
                 setId(data.id); // APIから取得したIDを保存
+                setToken(data.token); // APIから取得したトークンを保存
             } catch (error) {
                 console.error('APIエラー:', error);
                 setError('ネットワークエラーが発生しました');
@@ -104,7 +109,7 @@ const ResultPage = () => {
             <Text size="xl" w={700} mb="lg">
                 選択された人数: {count}
             </Text>
-            {id ? (
+            {id && token ? (
                 <>
                     <Text size="lg" w={500} mb="md">
                         生成されたID: {id}

@@ -1,25 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '../db';
 
-export async function POST(req: Request) {
-    const tableName = process.env.TABLE_NAME || 'receptions';
-    const { id, check } = await req.json();
-    if (typeof id !== 'number' || typeof check !== 'boolean') {
-        return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
-    }
-    try {
-        await pool.query(
-            `UPDATE ${tableName} SET checker = $1 WHERE id = $2`,
-            [check, id]
-        );
-        return NextResponse.json({ success: true });
-    } catch (error: unknown) {
-        console.error('Database error:', error);
-        return NextResponse.json({ error: 'DB error' }, { status: 500 });
-    }
-}
-
-// GET メソッドでIDを指定してcheckをtrueに更新
+// GET メソッドでIDを指定してalignmentをtrueに更新
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -31,7 +13,7 @@ export async function GET(req: Request) {
 
     try {
         const result = await pool.query(
-            `UPDATE ${tableName} SET check = true WHERE id = $1 RETURNING *`,
+            `UPDATE ${tableName} SET alignment = true WHERE id = $1 RETURNING *`,
             [id]
         );
 
