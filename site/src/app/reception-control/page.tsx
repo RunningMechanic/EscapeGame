@@ -25,10 +25,26 @@ const ReceptionControlPage = () => {
         setLoading(true);
         try {
             const response = await fetch('/api/getReceptionList');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const result = await response.json();
-            setData(result);
+            console.log('API Response:', result); // デバッグ用
+
+            // 新しいAPIレスポンス形式に対応
+            if (result.success && result.data && Array.isArray(result.data)) {
+                setData(result.data);
+            } else if (Array.isArray(result)) {
+                // 後方互換性のため、直接配列が返される場合も対応
+                setData(result);
+            } else {
+                console.error('Unexpected API response format:', result);
+                setData([]);
+            }
         } catch (error) {
             console.error('APIエラー:', error);
+            setData([]);
         } finally {
             setLoading(false);
         }
@@ -36,11 +52,12 @@ const ReceptionControlPage = () => {
 
     useEffect(() => { fetchData(); }, []);
 
-    const filteredData = data.filter((row) =>
+    // データが配列であることを確認してからフィルタリング
+    const filteredData = Array.isArray(data) ? data.filter((row) =>
         Object.values(row).some((value) =>
             value.toString().toLowerCase().includes(searchText.toLowerCase())
         ) && (!showUncheckedOnly || !row.checker)
-    );
+    ) : [];
 
     const handleToggle = async (id: number) => {
         const target = data.find((row) => row.id === id);
@@ -71,7 +88,7 @@ const ReceptionControlPage = () => {
             const response = await fetch('/api/deleteReception', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: deleteTarget.id }),
+                body: JSON.stringify({ id: deleteTarget.id }), // 管理画面なのでトークンなし
             });
 
             if (response.ok) {
@@ -80,7 +97,8 @@ const ReceptionControlPage = () => {
                 setDeleteModalOpen(false);
                 setDeleteTarget(null);
             } else {
-                console.error('削除に失敗しました');
+                const errorData = await response.json();
+                console.error('削除に失敗しました:', errorData.error);
             }
         } catch (error) {
             console.error('削除エラー:', error);
@@ -133,33 +151,41 @@ const ReceptionControlPage = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {filteredData.map((row) => (
-                        <tr
-                            key={row.id}
-                            className={row.checker ? "checked-row" : ""}
-                        >
-                            <td className="table-cell">{row.id}</td>
-                            <td className="table-cell">{row.start}</td>
-                            <td className="table-cell">{row.count}</td>
-                            <td className="table-cell">
-                                <Switch
-                                    checked={row.checker}
-                                    onChange={() => handleToggle(row.id)}
-                                />
-                            </td>
-                            <td className="table-cell">
-                                <Tooltip label="操作">
-                                    <ActionIcon
-                                        color="red"
-                                        size="sm"
-                                        onClick={() => handleDeleteClick(row)}
-                                    >
-                                        <IconTrash size="1rem" />
-                                    </ActionIcon>
-                                </Tooltip>
+                    {Array.isArray(filteredData) && filteredData.length > 0 ? (
+                        filteredData.map((row) => (
+                            <tr
+                                key={row.id}
+                                className={row.checker ? "checked-row" : ""}
+                            >
+                                <td className="table-cell">{row.id}</td>
+                                <td className="table-cell">{row.start}</td>
+                                <td className="table-cell">{row.count}</td>
+                                <td className="table-cell">
+                                    <Switch
+                                        checked={row.checker}
+                                        onChange={() => handleToggle(row.id)}
+                                    />
+                                </td>
+                                <td className="table-cell">
+                                    <Tooltip label="操作">
+                                        <ActionIcon
+                                            color="red"
+                                            size="sm"
+                                            onClick={() => handleDeleteClick(row)}
+                                        >
+                                            <IconTrash size="1rem" />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                </td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
+                                {loading ? 'データを読み込み中...' : 'データが見つかりません'}
                             </td>
                         </tr>
-                    ))}
+                    )}
                 </tbody>
             </Table>
 

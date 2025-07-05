@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import pool from '../db';
+import { errorResponse, successResponse } from '../../utils/apiUtils';
 
 // GET メソッドのハンドラー
 export async function GET() {
@@ -11,18 +11,12 @@ export async function GET() {
       SELECT * FROM ${tableName}
       ORDER BY start ASC; -- 開始希望時間の昇順で並べる
     `;
-    let result;
-    try {
-      result = await pool.query(selectQuery);
-    } catch (dbError) {
-      console.error('Database error during SELECT:', dbError);
-      return NextResponse.json({ error: 'Database error during SELECT operation' }, { status: 500 });
-    }
 
-    // 結果を返す
-    return NextResponse.json(result.rows);
+    const result = await pool.query(selectQuery);
+    return successResponse(result.rows);
+
   } catch (error) {
     console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'Unexpected internal server error' }, { status: 500 });
+    return errorResponse('Unexpected internal server error');
   }
 }

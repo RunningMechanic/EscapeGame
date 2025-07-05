@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
 import pool from '../db';
+import { generateToken } from '../../utils/tokenUtils';
+import { validationErrorResponse, conflictErrorResponse, errorResponse, successResponse } from '../../utils/apiUtils';
 
 // 時間を分に変換する関数
 function timeToMinutes(time: string): number {
@@ -17,26 +18,21 @@ function isTimeOverlap(start1: string, end1: string, start2: string, end2: strin
   return start1Min < end2Min && start2Min < end1Min;
 }
 
-// トークン生成関数
-function generateToken(id: string): string {
-  const secret = process.env.SESSION_SECRET || 'default-secret';
-  const timestamp = Math.floor(Date.now() / (1000 * 60 * 60)); // 1時間単位
-  return btoa(`${id}-${timestamp}-${secret}`).replace(/[^a-zA-Z0-9]/g, '');
-}
-
 // GET メソッドのハンドラー
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const tableName = process.env.TABLE_NAME || 'receptions';
   const count = searchParams.get('count'); // URLパラメータから人数を取得
   const start = searchParams.get('start'); // URLパラメータから開始時間を取得
+
   console.log('Received start time:', start);
   console.log('Received count:', count);
+
   if (!count) {
-    return NextResponse.json({ error: '人数が指定されていません' }, { status: 400 });
+    return validationErrorResponse('人数が指定されていません');
   }
   if (!start) {
-    return NextResponse.json({ error: '開始時間が指定されていません' }, { status: 400 });
+    return validationErrorResponse('開始時間が指定されていません');
   }
 
   try {
@@ -66,11 +62,10 @@ export async function GET(req: Request) {
       const existingEnd = `${existingEndHours.toString().padStart(2, '0')}:${existingEndMinutes.toString().padStart(2, '0')}`;
 
       if (isTimeOverlap(start, end, existingStart, existingEnd)) {
-        return NextResponse.json({
-          error: `この時間帯（${start}-${end}）は既に予約されています`,
-          available: false,
-          conflictingTime: `${existingStart}-${existingEnd}`
-        }, { status: 409 });
+        return conflictErrorResponse(
+          `この時間帯（${start}-${end}）は既に予約されています`,
+          { conflictingTime: `${existingStart}-${existingEnd}` }
+        );
       }
     }
 
@@ -80,34 +75,28 @@ export async function GET(req: Request) {
       VALUES ($1, $2)
       RETURNING id;
     `;
-    let result;
-    try {
-      result = await pool.query(insertQuery, [parseInt(count), start]);
-    } catch (dbError) {
-      console.error('Database error during INSERT:', dbError);
-      return NextResponse.json({ error: 'Database error during INSERT operation' }, { status: 500 });
-    }
 
+    const result = await pool.query(insertQuery, [parseInt(count), start]);
     const newId = result.rows[0]?.id;
+
     if (!newId) {
-      console.error('Failed to retrieve new ID from database');
-      return NextResponse.json({ error: 'Failed to retrieve new ID from database' }, { status: 500 });
+      return errorResponse('Failed to retrieve new ID from database');
     }
 
     // セッショントークンを生成
     const token = generateToken(newId.toString());
 
-    return NextResponse.json({
+    return successResponse({
       id: newId,
       count,
       start,
       end,
       token,
-      available: true,
-      message: '予約が正常に作成されました'
-    });
+      available: true
+    }, '予約が正常に作成されました');
+
   } catch (error) {
     console.error('Unexpected error:', error);
-    return NextResponse.json({ error: 'Unexpected internal server error' }, { status: 500 });
+    return errorResponse('Unexpected internal server error');
   }
 }

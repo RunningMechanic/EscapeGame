@@ -17,12 +17,23 @@ const ResultPage = () => {
     const [token, setToken] = useState<string | null>(null); // APIから取得したトークン
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [qrUrl, setQrUrl] = useState<string | null>(null); // QRコードのURL
+
+    // QRコードのURLを生成（クライアントサイドでのみ実行）
+    useEffect(() => {
+        if (id && token) {
+            const baseUrl = process.env.NEXT_PUBLIC_QR_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+            const url = `${baseUrl}/check-id?id=${id}&token=${token}`;
+            setQrUrl(url);
+            console.log('QR Code URL:', url); // デバッグ用
+        }
+    }, [id, token]);
 
     const QRCode = () => {
-        if (!id || !token) return null;
+        if (!qrUrl) return null;
 
         return <Canvas
-            text={`${process.env.NEXT_PUBLIC_QR_URL}/check-id?id=${id}&token=${token}`}
+            text={qrUrl}
             options={{
                 errorCorrectionLevel: 'M',
                 margin: 3,
@@ -42,21 +53,36 @@ const ResultPage = () => {
                 const response = await fetch(`/api/createUrl?count=${count}&start=${start}`, {
                     method: 'GET',
                 });
-                const data = await response.json();
-                console.log('APIレスポンス:', data);
+                const result = await response.json();
+                console.log('APIレスポンス:', result);
 
                 if (!response.ok) {
                     if (response.status === 409) {
                         // 重複エラーの場合
-                        setError(data.error || 'この時間帯は既に予約されています');
+                        setError(result.error || 'この時間帯は既に予約されています');
                     } else {
-                        setError(data.error || 'API呼び出しに失敗しました');
+                        setError(result.error || 'API呼び出しに失敗しました');
                     }
+                    return;
+                }
+
+                // 新しいAPIレスポンス形式に対応
+                let data;
+                if (result.success && result.data) {
+                    data = result.data;
+                } else if (result.id) {
+                    // 後方互換性のため、直接データが返される場合も対応
+                    data = result;
+                } else {
+                    console.error('Unexpected API response format:', result);
+                    setError('予約データの形式が正しくありません');
                     return;
                 }
 
                 setId(data.id); // APIから取得したIDを保存
                 setToken(data.token); // APIから取得したトークンを保存
+
+                console.log('ID:', data.id, 'Token:', data.token); // デバッグ用
             } catch (error) {
                 console.error('APIエラー:', error);
                 setError('ネットワークエラーが発生しました');
@@ -109,7 +135,7 @@ const ResultPage = () => {
             <Text size="xl" w={700} mb="lg">
                 選択された人数: {count}
             </Text>
-            {id && token ? (
+            {id && token && qrUrl ? (
                 <>
                     <Text size="lg" w={500} mb="md">
                         生成されたID: {id}

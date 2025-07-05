@@ -28,13 +28,18 @@ const CheckIdPage = () => {
                     return;
                 }
 
-                // localStorageから既存のIDを確認
-                const existingId = localStorage.getItem('currentId');
+                // localStorageから既存のIDを確認（クライアントサイドでのみ実行）
+                let existingId = null;
+                let existingToken = null;
+
+                if (typeof window !== 'undefined') {
+                    existingId = localStorage.getItem('currentId');
+                    existingToken = localStorage.getItem('currentToken');
+                }
 
                 // 既存のIDがある場合、そのIDのデータを取得してchecker状態を確認
                 if (existingId && existingId !== id) {
                     try {
-                        const existingToken = localStorage.getItem('currentToken');
                         const existingResponse = await fetch(`/api/checkid?id=${existingId}&token=${existingToken}`);
                         if (existingResponse.ok) {
                             const existingData = await existingResponse.json();
@@ -66,16 +71,20 @@ const CheckIdPage = () => {
                 const checkInResponse = await fetch(`/api/updateAlignment?id=${id}`);
                 if (checkInResponse.ok) {
                     setCheckInStatus('success');
-                    // localStorageにIDとトークンを保存
-                    localStorage.setItem('currentId', id || '');
-                    localStorage.setItem('currentToken', token || '');
-                    localStorage.setItem('checkInStatus', 'success');
+                    // localStorageにIDとトークンを保存（クライアントサイドでのみ実行）
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('currentId', id || '');
+                        localStorage.setItem('currentToken', token || '');
+                        localStorage.setItem('checkInStatus', 'success');
+                    }
                 } else {
                     setCheckInStatus('error');
-                    // エラーの場合もIDとトークンを保存
-                    localStorage.setItem('currentId', id || '');
-                    localStorage.setItem('currentToken', token || '');
-                    localStorage.setItem('checkInStatus', 'error');
+                    // エラーの場合もIDとトークンを保存（クライアントサイドでのみ実行）
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('currentId', id || '');
+                        localStorage.setItem('currentToken', token || '');
+                        localStorage.setItem('checkInStatus', 'error');
+                    }
                 }
             } catch (err: unknown) {
                 if (err instanceof Error) {
@@ -84,10 +93,12 @@ const CheckIdPage = () => {
                     setError('予期しないエラーが発生しました');
                 }
                 setCheckInStatus('error');
-                // エラーの場合もIDとトークンを保存
-                localStorage.setItem('currentId', id || '');
-                localStorage.setItem('currentToken', token || '');
-                localStorage.setItem('checkInStatus', 'error');
+                // エラーの場合もIDとトークンを保存（クライアントサイドでのみ実行）
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('currentId', id || '');
+                    localStorage.setItem('currentToken', token || '');
+                    localStorage.setItem('checkInStatus', 'error');
+                }
             } finally {
                 setLoading(false);
             }
@@ -114,9 +125,11 @@ const CheckIdPage = () => {
 
             if (response.ok) {
                 // キャンセル成功
-                localStorage.removeItem('currentId');
-                localStorage.removeItem('currentToken');
-                localStorage.removeItem('checkInStatus');
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('currentId');
+                    localStorage.removeItem('currentToken');
+                    localStorage.removeItem('checkInStatus');
+                }
                 router.push('/');
             } else {
                 const errorData = await response.json();
@@ -157,10 +170,12 @@ const CheckIdPage = () => {
                                     wordBreak: 'break-all'
                                 }}
                                 onClick={() => {
-                                    const existingToken = localStorage.getItem('currentToken');
-                                    const url = `check-id?id=${error.split('既存のID: ')[1]}&token=${existingToken}`;
-                                    if (url) {
-                                        window.location.href = url;
+                                    if (typeof window !== 'undefined') {
+                                        const existingToken = localStorage.getItem('currentToken');
+                                        const url = `check-id?id=${error.split('既存のID: ')[1]}&token=${existingToken}`;
+                                        if (url) {
+                                            window.location.href = url;
+                                        }
                                     }
                                 }}
                             >

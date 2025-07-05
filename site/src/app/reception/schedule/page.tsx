@@ -31,13 +31,31 @@ const ReceptionSchedulePage = () => {
         const fetchBookedTimes = async () => {
             try {
                 const response = await fetch('/api/getReceptionList');
-                if (response.ok) {
-                    const data: ReceptionData[] = await response.json();
-                    const booked = data.map((item: ReceptionData) => item.start);
-                    setBookedTimes(booked);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
+                const result = await response.json();
+                console.log('API Response:', result); // デバッグ用
+
+                let data: ReceptionData[] = [];
+
+                // 新しいAPIレスポンス形式に対応
+                if (result.success && result.data && Array.isArray(result.data)) {
+                    data = result.data;
+                } else if (Array.isArray(result)) {
+                    // 後方互換性のため、直接配列が返される場合も対応
+                    data = result;
+                } else {
+                    console.error('Unexpected API response format:', result);
+                    data = [];
+                }
+
+                const booked = data.map((item: ReceptionData) => item.start);
+                setBookedTimes(booked);
             } catch (error) {
                 console.error('予約情報の取得に失敗しました:', error);
+                setBookedTimes([]);
             } finally {
                 setLoading(false);
             }

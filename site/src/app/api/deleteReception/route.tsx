@@ -1,12 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import pool from '../db';
+import { validateToken } from '../../utils/tokenUtils';
+import { validationErrorResponse, authErrorResponse, notFoundErrorResponse, errorResponse, successResponse } from '../../utils/apiUtils';
 
 export async function DELETE(request: NextRequest) {
     try {
-        const { id } = await request.json();
+        const { id, token } = await request.json();
 
         if (!id) {
-            return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+            return validationErrorResponse('ID is required');
+        }
+
+        // トークンがある場合は検証、ない場合は管理画面からの削除とみなす
+        if (token && !validateToken(id.toString(), token)) {
+            return authErrorResponse('Invalid token');
         }
 
         // データベースから指定されたIDのレコードを削除
@@ -16,12 +23,12 @@ export async function DELETE(request: NextRequest) {
         );
 
         if (result.rowCount === 0) {
-            return NextResponse.json({ error: 'Record not found' }, { status: 404 });
+            return notFoundErrorResponse('Record not found');
         }
 
-        return NextResponse.json({ message: 'Record deleted successfully' });
+        return successResponse(null, 'Reservation cancelled successfully');
     } catch (error) {
-        console.error('Delete error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        console.error('Cancel error:', error);
+        return errorResponse('Internal server error');
     }
 } 
