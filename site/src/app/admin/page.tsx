@@ -7,6 +7,7 @@ const AdminPage = () => {
   const buttonLabels = [
     { label: '受付画面', href: '/entry' },
     { label: '受付操作', href: '/reception-control' },
+    { label: 'ランキング', href: '/ranking' },
   ];
 
   return (

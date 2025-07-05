@@ -1,30 +1,27 @@
 'use client';
-
 import React, { useEffect, useState } from "react";
-import { Table, Text, Loader, Center, TextInput, Button, Tooltip, Switch } from '@mantine/core';
-import './ReceptionControlPage.css'; // CSSファイルをインポート
+import { Table, Text, Loader, Center, TextInput, Button, Tooltip, Switch, ActionIcon } from '@mantine/core';
 import { RxReload } from "react-icons/rx";
+import { FaEyeSlash, FaEye } from "react-icons/fa";
+import './ReceptionControlPage.css';
+
 interface ReceptionData {
     id: number;
     start: string;
     count: number;
-    check: boolean;
+    checker: boolean;
 }
 
 const ReceptionControlPage = () => {
     const [data, setData] = useState<ReceptionData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
+    const [showUncheckedOnly, setShowUncheckedOnly] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/getReceptionList', {
-                method: 'GET',
-            });
-            if (!response.ok) {
-                throw new Error('API呼び出しに失敗しました');
-            }
+            const response = await fetch('/api/getReceptionList');
             const result = await response.json();
             setData(result);
         } catch (error) {
@@ -34,22 +31,29 @@ const ReceptionControlPage = () => {
         }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const filteredData = data.filter((row) =>
         Object.values(row).some((value) =>
             value.toString().toLowerCase().includes(searchText.toLowerCase())
-        )
+        ) && (!showUncheckedOnly || !row.checker)
     );
 
-    const handleToggle = (id: number) => {
-        setData((prevData) =>
-            prevData.map((row) =>
-                row.id === id ? { ...row, check: !row.check } : row
+    const handleToggle = async (id: number) => {
+        const target = data.find((row) => row.id === id);
+        if (!target) return;
+        const newCheck = !target.checker;
+        setData((prev) =>
+            prev.map((row) =>
+                row.id === id ? { ...row, checker: newCheck } : row
             )
         );
+        // APIで保存
+        await fetch('/api/updateCheck', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, check: newCheck }),
+        });
     };
 
     if (loading) {
@@ -72,6 +76,15 @@ const ReceptionControlPage = () => {
                     onChange={(e) => setSearchText(e.target.value)}
                     className="search-input"
                 />
+                <Tooltip label={showUncheckedOnly ? "全員表示" : "未チェックのみ表示"}>
+                    <ActionIcon
+                        color={showUncheckedOnly ? "orange" : "gray"}
+                        size="lg"
+                        onClick={() => setShowUncheckedOnly((v) => !v)}
+                    >
+                        {showUncheckedOnly ? <FaEye /> : <FaEyeSlash />}
+                    </ActionIcon>
+                </Tooltip>
                 <Tooltip label="Reload Data">
                     <Button className="toolbar-button" onClick={fetchData}>
                         <RxReload />
@@ -84,18 +97,21 @@ const ReceptionControlPage = () => {
                         <th>受付ID</th>
                         <th>開始希望時間</th>
                         <th>人数</th>
-                        <th>受付チェック</th>
+                        <th>来場済み</th>
                     </tr>
                 </thead>
                 <tbody>
                     {filteredData.map((row) => (
-                        <tr key={row.id}>
+                        <tr
+                            key={row.id}
+                            className={row.checker ? "checked-row" : ""}
+                        >
                             <td className="table-cell">{row.id}</td>
                             <td className="table-cell">{row.start}</td>
                             <td className="table-cell">{row.count}</td>
                             <td className="table-cell">
                                 <Switch
-                                    checked={row.check}
+                                    checked={row.checker}
                                     onChange={() => handleToggle(row.id)}
                                 />
                             </td>

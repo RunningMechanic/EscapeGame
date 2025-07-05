@@ -9,7 +9,7 @@ const EntryPage = () => {
 
     return (
         <div>
-            <Text size="xl" className="row-text">人数を選んでね</Text>
+            <Text size="xl" className="row-text">チェックインする</Text>
 
             <Group grow>
                 <Button
@@ -19,14 +19,14 @@ const EntryPage = () => {
                 >
                     カメラ
                 </Button>
-
+                {/* 
                 <Button
                     className={classes.entryButton}
                     color="indigo"
                     onClick={() => router.push('/check2')}
                 >
                     受付番号
-                </Button>
+                </Button> */}
             </Group>
         </div>
     );
