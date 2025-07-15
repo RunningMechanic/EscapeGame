@@ -1,0 +1,16 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql" // データベースのプロバイダーを指定
+    url      = env("DATABASE_URL")
+}
+
+model ReceptionData {
+    id        Int     @id @default(autoincrement())
+    start     String
+    count     Int
+    checker   Boolean
+    alignment Boolean
+}

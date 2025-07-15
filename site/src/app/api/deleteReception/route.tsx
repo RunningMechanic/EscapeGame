@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
-import pool from '../db';
-import { validateToken } from '../../utils/tokenUtils';
-import { validationErrorResponse, authErrorResponse, notFoundErrorResponse, errorResponse, successResponse } from '../../utils/apiUtils';
+import prisma from '@/lib/db';
+import { validateToken } from '@/utils/tokenUtils';
+import { validationErrorResponse, authErrorResponse, notFoundErrorResponse, errorResponse, successResponse } from '@/utils/apiUtils';
 
 export async function DELETE(request: NextRequest) {
     try {
@@ -17,12 +17,11 @@ export async function DELETE(request: NextRequest) {
         }
 
         // データベースから指定されたIDのレコードを削除
-        const result = await pool.query(
-            'DELETE FROM reception WHERE id = $1',
-            [id]
-        );
+        const deleted = await prisma.receptionData.delete({
+            where: { id: Number(id) },
+        });
 
-        if (result.rowCount === 0) {
+        if (!deleted) {
             return notFoundErrorResponse('Record not found');
         }
 

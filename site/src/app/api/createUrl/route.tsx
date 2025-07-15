@@ -1,6 +1,6 @@
-import pool from '../db';
-import { generateToken } from '../../utils/tokenUtils';
-import { validationErrorResponse, conflictErrorResponse, errorResponse, successResponse } from '../../utils/apiUtils';
+import prisma from '@/lib/db';
+import { generateToken } from '@/utils/tokenUtils';
+import { validationErrorResponse, conflictErrorResponse, errorResponse, successResponse } from '@/utils/apiUtils';
 
 // 時間を分に変換する関数
 function timeToMinutes(time: string): number {
@@ -21,7 +21,6 @@ function isTimeOverlap(start1: string, end1: string, start2: string, end2: strin
 // GET メソッドのハンドラー
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const tableName = process.env.TABLE_NAME || 'receptions';
   const count = searchParams.get('count'); // URLパラメータから人数を取得
   const start = searchParams.get('start'); // URLパラメータから開始時間を取得
 
@@ -44,13 +43,10 @@ export async function GET(req: Request) {
     const end = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
 
     // 既存の予約を取得して重複チェック
-    const checkQuery = `
-      SELECT start FROM ${tableName} 
-      ORDER BY start ASC;
-    `;
-
-    const checkResult = await pool.query(checkQuery);
-    const existingBookings = checkResult.rows;
+    const existingBookings = await prisma.receptionData.findMany({
+      select: { start: true },
+      orderBy: { start: 'asc' },
+    });
 
     // 重複チェック
     for (const booking of existingBookings) {
@@ -70,14 +66,16 @@ export async function GET(req: Request) {
     }
 
     // IDと人数を保存
-    const insertQuery = `
-      INSERT INTO ${tableName} (count, start)
-      VALUES ($1, $2)
-      RETURNING id;
-    `;
+    const newReception = await prisma.receptionData.create({
+      data: {
+        count: parseInt(count),
+        start,
+        checker: false,
+        alignment: false,
+      },
+    });
 
-    const result = await pool.query(insertQuery, [parseInt(count), start]);
-    const newId = result.rows[0]?.id;
+    const newId = newReception.id;
 
     if (!newId) {
       return errorResponse('Failed to retrieve new ID from database');
