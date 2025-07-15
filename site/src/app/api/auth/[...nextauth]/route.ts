@@ -1,56 +1,34 @@
-import NextAuth, { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import NextAuth, { AuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import prisma from "@/lib/db";
+import { compare } from "bcryptjs";
 
-const authOptions: NextAuthOptions = {
-    session: { strategy: 'jwt' },
+export const authOptions: AuthOptions = {
     providers: [
         CredentialsProvider({
-            name: 'Ninjin Sirisiri',
+            name: "Credentials",
             credentials: {
-                id: { label: 'Id', type: 'text' },
-                password: { label: 'Password', type: 'password' },
+                email: { label: "メールアドレス", type: "email" },
+                password: { label: "パスワード", type: "password" }
             },
             async authorize(credentials) {
-                // IDとパスワードを検証
-                console.log(credentials);
-                const matched =
-                    credentials?.id === 'admin' && credentials?.password === 'securepassword';
-                if (matched) {
-                    console.log('login success');
-                    return { id: 'admin' }; // 認証成功時のユーザー情報
-                } else {
-                    console.log('login failed');
-                    return null; // 認証失敗
-                }
-            },
-        }),
+                if (!credentials) return null;
+                const user = await prisma.user.findUnique({
+                    where: { email: credentials.email }
+                });
+                if (!user) return null;
+                const isValid = await compare(credentials.password, user.password);
+                if (!isValid) return null;
+                return { id: String(user.id), email: user.email };
+            }
+        })
     ],
+    session: { strategy: "jwt" }, // 型が合わない場合は "jwt" as const でもOK
+    secret: process.env.NEXTAUTH_SECRET,
     pages: {
-        signIn: '/admin-login', // ログインページのパス
-    },
-    // callbacks: {
-    //     async session({ session, token }) {
-    //         if (token.sub) {
-    //             session.user.id = token.sub;
-    //         }
-    //         return session;
-    //     },
-    //     async jwt({ token, user }) {
-    //         if (user) {
-    //             token.sub = user.id;
-    //         }
-    //         return token;
-    //     },
-    //     async signIn({ user, account, profile }) {
-    //         if (user) {
-    //             return true;
-    //         } else {
-    //             return false;
-    //         }
-    //     },
-    // },
+        signIn: "/auth/signin"
+    }
 };
 
 const handler = NextAuth(authOptions);
-
 export { handler as GET, handler as POST };

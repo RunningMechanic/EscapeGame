@@ -2,57 +2,81 @@
 
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
-import { Container, Title, TextInput, PasswordInput, Button, Stack, Center } from '@mantine/core';
+import {
+    Container, Title, TextInput, PasswordInput, Button, Stack, Paper, Group, Loader, Notification
+} from '@mantine/core';
+import { IconLock, IconUser, IconAlertCircle } from '@tabler/icons-react';
 
 const LoginPage = () => {
-    const [id, setId] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleLogin = async () => {
+    const handleLogin = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        setLoading(true);
+        setError(null);
         const result = await signIn('credentials', {
-            id,
+            email,
             password,
             redirect: false,
-            callbackUrl: '/admin', // This might be ignored with redirect: false, but kept for clarity
+            callbackUrl: '/admin',
         });
-        console.log('Client-side signIn result:', result);
-
+        setLoading(false);
         if (result?.ok) {
-            console.log('Authentication successful on client, redirecting to /admin');
             window.location.href = '/admin';
         } else {
-            // Log the error if it exists, otherwise log a generic message.
-            const errorMessage = result?.error || 'Unknown error during sign in.';
-            console.error('Client-side signIn error:', errorMessage);
-            alert('ログインに失敗しました。IDまたはパスワードを確認してください。 Error: ' + errorMessage);
+            // 401やその他のエラー時は必ず同じ日本語メッセージを表示
+            setError('メールアドレスまたはパスワードが違います');
         }
     };
 
     return (
-        <Container size="xs" p="md">
-            <Center h="80vh">
-                <Stack align="center" gap="md">
-                    <Title order={1} mb="lg">ログイン</Title>
-                    <TextInput
-                        placeholder="ID"
-                        value={id}
-                        onChange={(e) => setId(e.target.value)}
-                        w="100%" // Stack will manage the width, or set a specific width
-                        maw={300} // Max width for the input
-                    />
-                    <PasswordInput
-                        placeholder="パスワード"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        w="100%"
-                        maw={300}
-                    />
-                    <Button onClick={handleLogin} mt="md" color="blue" fullWidth maw={300}>
-                        ログイン
-                    </Button>
-                </Stack>
-            </Center>
-        </Container>
+        <div style={{ minHeight: '100vh', background: '#f6f8fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Container size="xs" p="md" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+                <Paper shadow="md" p="xl" radius="md" withBorder style={{ minWidth: 340, width: '100%', maxWidth: 400 }}>
+                    <form onSubmit={handleLogin}>
+                        <Stack align="center" gap="md">
+                            <Group>
+                                <IconLock size={32} color="#228be6" />
+                                <Title order={2} mb="xs">管理者ログイン</Title>
+                            </Group>
+                            {error && (
+                                <Notification color="red" icon={<IconAlertCircle size={18} />} withCloseButton={false} style={{ width: '100%', marginBottom: 12, textAlign: 'center' }}>
+                                    {error}
+                                </Notification>
+                            )}
+                            <TextInput
+                                label="メールアドレス"
+                                placeholder="your@email.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                leftSection={<IconUser size={18} />}
+                                required
+                                w="100%"
+                                maw={300}
+                                autoComplete="username"
+                            />
+                            <PasswordInput
+                                label="パスワード"
+                                placeholder="パスワード"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                leftSection={<IconLock size={18} />}
+                                required
+                                w="100%"
+                                maw={300}
+                                autoComplete="current-password"
+                            />
+                            <Button type="submit" mt="md" color="blue" fullWidth maw={300} disabled={loading} leftSection={loading ? <Loader size={18} color="white" /> : undefined}>
+                                {loading ? 'ログイン中...' : 'ログイン'}
+                            </Button>
+                        </Stack>
+                    </form>
+                </Paper>
+            </Container>
+        </div>
     );
 };
 

@@ -1,17 +1,31 @@
-import { withAuth } from 'next-auth/middleware';
-// import { NextRequest, NextResponse } from 'next/server'; // Removed as no longer needed
-console.log('Middleware loaded');
-export default withAuth({
-    pages: {
-        signIn: '/admin-login', // ログインページにリダイレクト
-    },
-});
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
-// export default function middleware(req: NextRequest) {
-//   console.log('Simplified middleware executed for path:', req.nextUrl.pathname);
-//   return NextResponse.next();
-// }
+const PUBLIC_PATHS = ['/', '/checkid', '/api/checkid', '/admin-login'];
 
+export async function middleware(request: NextRequest) {
+    // 完全一致またはサブパス一致で除外
+    if (PUBLIC_PATHS.some(path =>
+        request.nextUrl.pathname === path ||
+        (path !== '/' && request.nextUrl.pathname.startsWith(path + '/'))
+    )) {
+        return NextResponse.next();
+    }
+
+    // 認証判定
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+        const loginUrl = new URL('/admin-login', request.url);
+        return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.next();
+}
+
+// 適用範囲を指定
 export const config = {
-    matcher: ['/reception-control'], // Keep matcher broad for now
+    matcher: [
+        // すべてのパスに適用。ただし、middleware内で除外判定
+        '/((?!_next/|api/|checkid|admin-login$|$).*)',
+    ],
 };

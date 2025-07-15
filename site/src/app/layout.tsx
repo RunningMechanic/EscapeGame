@@ -27,7 +27,6 @@ export default function RootLayout({
         <MantineProvider
           defaultColorScheme="dark"
           theme={{
-
             fontFamily: 'var(--font-geist-sans)',
             headings: { fontFamily: 'var(--font-geist-sans)' },
           }}

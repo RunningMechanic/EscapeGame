@@ -14,6 +14,7 @@
     "@prisma/client": "^6.11.1",
     "@tabler/icons-react": "^3.34.0",
     "@types/pg": "^8.11.14",
+    "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
     "jsqr": "^1.4.0",
     "next": "^15.3.3",
@@ -37,6 +38,7 @@
     "postcss-preset-mantine": "^1.17.0",
     "postcss-simple-vars": "^7.0.1",
     "prisma": "^6.11.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
