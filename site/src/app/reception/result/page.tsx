@@ -22,7 +22,7 @@ const ResultPage = () => {
     // QRコードのURLを生成（クライアントサイドでのみ実行）
     useEffect(() => {
         if (id && token) {
-            const baseUrl = process.env.NEXT_PUBLIC_QR_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
             const url = `${baseUrl}/check-id?id=${id}&token=${token}`;
             setQrUrl(url);
             console.log('QR Code URL:', url); // デバッグ用
