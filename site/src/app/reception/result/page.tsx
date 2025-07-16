@@ -12,6 +12,7 @@ const ResultPage = () => {
     const searchParams = useSearchParams();
     const count = searchParams.get('count'); // URLパラメータから人数を取得
     const start = searchParams.get('start');
+    const room = searchParams.get('room');
     const hasFetched = useRef(false); // API呼び出しを制御するフラグ
     const [id, setId] = useState<string | null>(null); // APIから取得したID
     const [token, setToken] = useState<string | null>(null); // APIから取得したトークン
@@ -50,7 +51,7 @@ const ResultPage = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await fetch(`/api/createUrl?count=${count}&start=${start}`, {
+                const response = await fetch(`/api/createUrl?count=${count}&start=${start}&room=${room}`, {
                     method: 'GET',
                 });
                 const result = await response.json();
@@ -143,7 +144,7 @@ const ResultPage = () => {
                     <QRCode />
                 </>
             ) : (
-                <Text size="lg" color="red">
+                <Text size="lg" c="red">
                     QRコードの生成に失敗しました。
                 </Text>
             )}

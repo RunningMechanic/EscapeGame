@@ -11,7 +11,7 @@ const ReceptionGuestCountPage = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const start = searchParams.get('start'); // startパラメータを取得
-
+    const room = searchParams.get('room'); // roomパラメータを取得
     const handleButtonClick = (buttonNumber: number) => {
         setSelectedButton(buttonNumber);
     };
@@ -20,7 +20,7 @@ const ReceptionGuestCountPage = () => {
         if (isNavigating) return; // 連続遷移を防止
         if (selectedButton !== null) {
             setIsNavigating(true); // 遷移中に設定
-            router.push(`/reception/result?count=${selectedButton}&start=${start}`); // 選択された人数に応じたページに遷移
+            router.push(`/reception/result?count=${selectedButton}&start=${start}&room=${room}`); // 選択された人数に応じたページに遷移
         } else {
             alert('人数を選択してください！'); // 未選択の場合は警告を表示
         }

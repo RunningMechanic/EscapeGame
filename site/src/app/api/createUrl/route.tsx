@@ -1,100 +1,69 @@
 import prisma from '@/lib/db';
+import { errorResponse, successResponse } from '@/utils/apiUtils';
+import { NextRequest } from 'next/server';
 import { generateToken } from '@/utils/tokenUtils';
-import { validationErrorResponse, conflictErrorResponse, errorResponse, successResponse } from '@/utils/apiUtils';
-
-// 時間を分に変換する関数
-function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number);
-  return hours * 60 + minutes;
-}
-
-// 時間帯が重複するかチェックする関数
-function isTimeOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
-  const start1Min = timeToMinutes(start1);
-  const end1Min = timeToMinutes(end1);
-  const start2Min = timeToMinutes(start2);
-  const end2Min = timeToMinutes(end2);
-
-  return start1Min < end2Min && start2Min < end1Min;
-}
 
 // GET メソッドのハンドラー
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const count = searchParams.get('count'); // URLパラメータから人数を取得
-  const start = searchParams.get('start'); // URLパラメータから開始時間を取得
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const start = searchParams.get('start');
+  const count = Number(searchParams.get('count'));
+  const room = Number(searchParams.get('room')); // 追加
 
-  console.log('Received start time:', start);
-  console.log('Received count:', count);
-
-  if (!count) {
-    return validationErrorResponse('人数が指定されていません');
-  }
-  if (!start) {
-    return validationErrorResponse('開始時間が指定されていません');
+  if (!start || !count || !room) {
+    return errorResponse('パラメータが不足しています');
   }
 
-  try {
-    // 終了時間を計算（開始時間から10分後）
-    const [hours, minutes] = start.split(':').map(Number);
-    const totalMinutes = hours * 60 + minutes + 10;
-    const endHours = Math.floor(totalMinutes / 60) % 24;
-    const endMinutes = totalMinutes % 60;
-    const end = `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+  let timeObj: Date | null = null;
 
-    // 既存の予約を取得して重複チェック
-    const existingBookings = await prisma.receptionData.findMany({
-      select: { start: true },
-      orderBy: { start: 'asc' },
-    });
-
-    // 重複チェック
-    for (const booking of existingBookings) {
-      const existingStart = booking.start;
-      const [existingHours, existingMinutes] = existingStart.split(':').map(Number);
-      const existingTotalMinutes = existingHours * 60 + existingMinutes + 10;
-      const existingEndHours = Math.floor(existingTotalMinutes / 60) % 24;
-      const existingEndMinutes = existingTotalMinutes % 60;
-      const existingEnd = `${existingEndHours.toString().padStart(2, '0')}:${existingEndMinutes.toString().padStart(2, '0')}`;
-
-      if (isTimeOverlap(start, end, existingStart, existingEnd)) {
-        return conflictErrorResponse(
-          `この時間帯（${start}-${end}）は既に予約されています`,
-          { conflictingTime: `${existingStart}-${existingEnd}` }
-        );
-      }
+  if (start) {
+    // ISO形式ならそのまま、時刻だけなら今日の日付を補完
+    if (/^\d{2}:\d{2}$/.test(start)) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      timeObj = new Date(`${yyyy}-${mm}-${dd}T${start}`);
+    } else {
+      timeObj = new Date(start);
     }
-
-    // IDと人数を保存
-    const newReception = await prisma.receptionData.create({
-      data: {
-        count: parseInt(count),
-        start,
-        checker: false,
-        alignment: false,
-      },
-    });
-
-    const newId = newReception.id;
-
-    if (!newId) {
-      return errorResponse('Failed to retrieve new ID from database');
-    }
-
-    // セッショントークンを生成
-    const token = generateToken(newId.toString());
-
-    return successResponse({
-      id: newId,
-      count,
-      start,
-      end,
-      token,
-      available: true
-    }, '予約が正常に作成されました');
-
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return errorResponse('Unexpected internal server error');
   }
+
+  if (!timeObj || isNaN(timeObj.getTime())) {
+    return errorResponse('開始時間の形式が不正です');
+  }
+
+  // 既存の予約を取得して重複チェック（部屋も考慮）
+  const existingBookings = await prisma.reception.findMany({
+    where: {
+      time: timeObj,
+      room: room,
+    },
+    select: { time: true },
+    orderBy: { time: 'asc' },
+  });
+
+  if (existingBookings.length > 0) {
+    return errorResponse('この時間・部屋はすでに予約されています');
+  }
+
+  // 予約を保存
+  const newBooking = await prisma.reception.create({
+    data: {
+      time: timeObj,
+      number: count, // 必要に応じて
+      room: room,
+      // 他のカラムも必要なら追加
+    },
+  });
+
+  // 予約IDからトークンを生成
+  const token = generateToken(newBooking.id.toString());
+
+  // idとtokenを返す
+  return successResponse({
+    id: newBooking.id,
+    token,
+    // 必要なら他の情報も
+  });
 }

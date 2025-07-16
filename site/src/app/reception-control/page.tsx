@@ -8,9 +8,9 @@ import './ReceptionControlPage.css';
 
 interface ReceptionData {
     id: number;
-    start: string;
-    count: number;
-    checker: boolean;
+    time: string;
+    number: number;
+    alignment: boolean;
 }
 
 const ReceptionControlPage = () => {
@@ -56,16 +56,16 @@ const ReceptionControlPage = () => {
     const filteredData = Array.isArray(data) ? data.filter((row) =>
         Object.values(row).some((value) =>
             value.toString().toLowerCase().includes(searchText.toLowerCase())
-        ) && (!showUncheckedOnly || !row.checker)
+        ) && (!showUncheckedOnly || !row.alignment)
     ) : [];
 
     const handleToggle = async (id: number) => {
         const target = data.find((row) => row.id === id);
         if (!target) return;
-        const newCheck = !target.checker;
+        const newCheck = !target.alignment;
         setData((prev) =>
             prev.map((row) =>
-                row.id === id ? { ...row, checker: newCheck } : row
+                row.id === id ? { ...row, alignment: newCheck } : row
             )
         );
         // APIで保存
@@ -155,14 +155,21 @@ const ReceptionControlPage = () => {
                         filteredData.map((row) => (
                             <tr
                                 key={row.id}
-                                className={row.checker ? "checked-row" : ""}
+                                className={row.alignment ? "checked-row" : ""}
                             >
                                 <td className="table-cell">{row.id}</td>
-                                <td className="table-cell">{row.start}</td>
-                                <td className="table-cell">{row.count}</td>
+                                <td className="table-cell">
+                                    {(() => {
+                                        const date = new Date(row.time);
+                                        const hours = date.getUTCHours().toString().padStart(2, '0');
+                                        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+                                        return `${hours}:${minutes}`;
+                                    })()}
+                                </td>
+                                <td className="table-cell">{row.number}</td>
                                 <td className="table-cell">
                                     <Switch
-                                        checked={row.checker}
+                                        checked={row.alignment}
                                         onChange={() => handleToggle(row.id)}
                                     />
                                 </td>

@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     }
 
     try {
-        const updated = await prisma.receptionData.update({
+        const updated = await prisma.reception.update({
             where: { id: Number(id) },
             data: { alignment: true },
         });

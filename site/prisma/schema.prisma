@@ -7,12 +7,13 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model ReceptionData {
-    id        Int     @id @default(autoincrement())
-    start     String
-    count     Int
-    checker   Boolean
-    alignment Boolean
+model Reception {
+    id        Int      @id @default(autoincrement())
+    time      DateTime
+    number    Int // 人数を保存する
+    room      Int // 追加: 1 or 2
+    alignment Boolean  @default(false)
+    // ...他のカラム
 }
 
 model User {

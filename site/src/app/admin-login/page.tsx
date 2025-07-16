@@ -43,8 +43,23 @@ const LoginPage = () => {
                                 <Title order={2} mb="xs">管理者ログイン</Title>
                             </Group>
                             {error && (
-                                <Notification color="red" icon={<IconAlertCircle size={18} />} withCloseButton={false} style={{ width: '100%', marginBottom: 12, textAlign: 'center' }}>
-                                    {error}
+                                <Notification
+                                    color="red"
+                                    icon={<IconAlertCircle size={18} />}
+                                    withCloseButton={false}
+                                    style={{
+                                        width: '100%',
+                                        maxWidth: 320,
+                                        marginBottom: 12,
+                                        textAlign: 'center',
+                                        fontSize: '1.05rem',
+                                        fontWeight: 500,
+                                        letterSpacing: '0.02em',
+                                        lineHeight: 1.6,
+                                        padding: '12px 8px'
+                                    }}
+                                >
+                                    メールアドレスまたは<br />パスワードが違います
                                 </Notification>
                             )}
                             <TextInput

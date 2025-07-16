@@ -9,9 +9,9 @@ export async function POST(req: Request) {
     }
 
     try {
-        await prisma.receptionData.update({
+        await prisma.reception.update({
             where: { id },
-            data: { checker: check },
+            data: { alignment: check },
         });
         return successResponse(null, 'Check status updated successfully');
     } catch (error: unknown) {
@@ -30,9 +30,9 @@ export async function GET(req: Request) {
     }
 
     try {
-        const updated = await prisma.receptionData.update({
+        const updated = await prisma.reception.update({
             where: { id: Number(id) },
-            data: { checker: true },
+            data: { alignment: true },
         });
         return successResponse(updated, 'チェックインが完了しました');
     } catch (error: unknown) {

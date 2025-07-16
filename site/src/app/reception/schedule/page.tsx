@@ -4,20 +4,23 @@ import React, { useState, useEffect } from "react";
 import { Button, Group, Select, Text, Alert } from '@mantine/core';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
-import './ReceptionSchedulePage.css'; // CSSファイルをインポート
+import './ReceptionSchedulePage.css';
 
 interface ReceptionData {
     id: number;
-    start: string;
-    count: number;
-    checker?: boolean;
+    time: string;
+    room: number;
 }
+
+// Mantine v8: カスタムオプションコンポーネント
 
 const ReceptionSchedulePage = () => {
     const router = useRouter();
     const [startTime, setStartTime] = useState<string | null>(null);
     const [endTime, setEndTime] = useState<string | null>(null);
-    const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+    const [selectedRoom, setSelectedRoom] = useState<string>('1');
+    const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+    const [receptions, setReceptions] = useState<ReceptionData[]>([]);
     const [loading, setLoading] = useState(true);
 
     const timeOptions = [
@@ -26,51 +29,40 @@ const ReceptionSchedulePage = () => {
         "15:00", "15:10", "15:20", "15:30", "15:40", "15:50"
     ];
 
-    // 既存の予約を取得
+    // 予約データ取得
     useEffect(() => {
-        const fetchBookedTimes = async () => {
-            try {
-                const response = await fetch('/api/getReceptionList');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+        fetch('/api/getReceptionList')
+            .then(res => res.json())
+            .then(result => {
+                if (result.success && Array.isArray(result.data)) {
+                    setReceptions(result.data);
                 }
-
-                const result = await response.json();
-                console.log('API Response:', result); // デバッグ用
-
-                let data: ReceptionData[] = [];
-
-                // 新しいAPIレスポンス形式に対応
-                if (result.success && result.data && Array.isArray(result.data)) {
-                    data = result.data;
-                } else if (Array.isArray(result)) {
-                    // 後方互換性のため、直接配列が返される場合も対応
-                    data = result;
-                } else {
-                    console.error('Unexpected API response format:', result);
-                    data = [];
-                }
-
-                const booked = data.map((item: ReceptionData) => item.start);
-                setBookedTimes(booked);
-            } catch (error) {
-                console.error('予約情報の取得に失敗しました:', error);
-                setBookedTimes([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchBookedTimes();
+            })
+            .finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        if (startTime && selectedRoom) {
+            const today = new Date();
+            const jst = new Date(today.getTime() + 9 * 60 * 60 * 1000);
+            const yyyy = jst.getFullYear();
+            const mm = String(jst.getMonth() + 1).padStart(2, '0');
+            const dd = String(jst.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}T${startTime}:00`;
+            fetch(`/api/checkRoomAvailability?time=${encodeURIComponent(dateStr)}&room=${selectedRoom}`)
+                .then(res => res.json())
+                .then(data => setIsAvailable(data.available));
+        } else {
+            setIsAvailable(null);
+        }
+    }, [startTime, selectedRoom]);
 
     const handleStartTimeChange = (value: string | null) => {
         setStartTime(value);
-
         if (value) {
             const [hours, minutes] = value.split(':').map(Number);
-            const totalMinutes = hours * 60 + minutes + 10; // 10分後を計算
-            const endHours = Math.floor(totalMinutes / 60) % 24; // 時間を24時間制に調整
+            const totalMinutes = hours * 60 + minutes + 10;
+            const endHours = Math.floor(totalMinutes / 60) % 24;
             const endMinutes = totalMinutes % 60;
             setEndTime(`${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`);
         } else {
@@ -79,19 +71,38 @@ const ReceptionSchedulePage = () => {
     };
 
     const handleConfirm = () => {
-        if (!startTime || !endTime) {
-            alert('開始時刻を選択してください！');
+        if (!startTime || !endTime || !selectedRoom) {
+            alert('開始時刻と部屋を選択してください！');
             return;
         }
-        router.push(`/reception/guest-count?start=${startTime}`);
+        router.push(`/reception/guest-count?start=${startTime}&room=${selectedRoom}`);
     };
 
-    // 利用可能な時間オプションをフィルタリング
-    const availableTimeOptions = timeOptions.map(time => ({
-        value: time,
-        label: time,
-        disabled: bookedTimes.includes(time)
-    }));
+    // 予約済みかどうか判定
+    function isBooked(time: string, room: string) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const jst = new Date(today.getTime() + 9 * 60 * 60 * 1000);
+        const mm = String(jst.getMonth() + 1).padStart(2, '0');
+        const dd = String(jst.getDate());
+        const dateStr = `${yyyy}-${mm}-${dd}T${time}:00`;
+        return receptions.some(
+            (r) =>
+                r.room?.toString() === room &&
+                new Date(r.time).toISOString().slice(0, 16) === new Date(dateStr).toISOString().slice(0, 16)
+        );
+    }
+
+    // Select用データ生成
+    const availableTimeOptions = timeOptions.map(time => {
+        const booked = isBooked(time, selectedRoom);
+        return {
+            value: time,
+            label: time,
+            booked,
+            disabled: booked,
+        };
+    });
 
     if (loading) {
         return (
@@ -109,24 +120,38 @@ const ReceptionSchedulePage = () => {
                 スケジュールを選択してください
             </Text>
 
-            {bookedTimes.length > 0 && !startTime && (
+            <Group>
+                <Select
+                    label="部屋"
+                    data={[
+                        { value: '1', label: '部屋1' },
+                        { value: '2', label: '部屋2' }
+                    ]}
+                    value={selectedRoom}
+                    onChange={(value) => setSelectedRoom(value ?? '')}
+                    className="schedule-select"
+                    style={{ minWidth: 120 }}
+                />
+            </Group>
+
+            {isAvailable === false && (
                 <Alert
                     icon={<IconAlertCircle size="1rem" />}
-                    title="予約済み時間帯"
-                    color="yellow"
+                    title="満席"
+                    color="red"
                     style={{ marginBottom: '20px', maxWidth: '500px' }}
                 >
-                    予約済みの時間帯は選択できません
+                    この部屋・時間帯は満席です
                 </Alert>
             )}
-            {bookedTimes.length > 0 && startTime && (
+            {isAvailable === true && (
                 <Alert
                     icon={<IconCheck size="1rem" />}
-                    title="この時間帯は選択できます"
+                    title="予約可能"
                     color="green"
                     style={{ marginBottom: '20px', maxWidth: '500px' }}
                 >
-                    この時間帯は選択できます
+                    この部屋・時間帯は予約できます
                 </Alert>
             )}
 
@@ -154,7 +179,7 @@ const ReceptionSchedulePage = () => {
                     size="lg"
                     onClick={handleConfirm}
                     className="schedule-button"
-                    disabled={!startTime || bookedTimes.includes(startTime || '')}
+                    disabled={!startTime || !isAvailable}
                 >
                     確定
                 </Button>
