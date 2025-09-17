@@ -229,7 +229,7 @@ const ReceptionSchedulePage = () => {
                                                     </Badge>
                                                 )}
                                                 {!booked && (
-                                                    <Badge size="sm" color="green" variant="light" radius="md">
+                                                    <Badge size="lg" color="green" variant="light" radius="md" styles={{ root: { fontWeight: 800, letterSpacing: 0.5 } }}>
                                                         残席 {remaining}
                                                     </Badge>
                                                 )}

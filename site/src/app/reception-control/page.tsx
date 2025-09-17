@@ -5,6 +5,7 @@ import { IconDeviceFloppy, IconRestore } from '@tabler/icons-react';
 import { RxReload } from "react-icons/rx";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { IconTrash } from '@tabler/icons-react';
+import { useQRCode } from 'next-qrcode';
 import './ReceptionControlPage.css';
 
 interface ReceptionData {
@@ -25,6 +26,9 @@ const ReceptionControlPage = () => {
     const [showUncheckedOnly, setShowUncheckedOnly] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<ReceptionData | null>(null);
+    const [qrModalOpen, setQrModalOpen] = useState(false);
+    const [qrTarget, setQrTarget] = useState<ReceptionData | null>(null);
+    const { Canvas } = useQRCode();
     const [dirtyIds, setDirtyIds] = useState<Set<number>>(new Set());
     const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
 
@@ -219,6 +223,15 @@ const ReceptionControlPage = () => {
                         <RxReload />
                     </Button>
                 </Tooltip>
+                <Tooltip label="選択IDのチェック用QRを生成">
+                    <Button
+                        className="toolbar-button"
+                        disabled={!qrTarget}
+                        onClick={() => setQrModalOpen(true)}
+                    >
+                        QR生成
+                    </Button>
+                </Tooltip>
                 <div className="toolbar-right">
                     {dirtyIds.size > 0 && (
                         <Badge color="yellow" variant="filled">未保存: {dirtyIds.size}</Badge>
@@ -254,7 +267,7 @@ const ReceptionControlPage = () => {
                                 className={`${row.alignment ? 'checked-row' : ''} ${dirtyIds.has(row.id) ? 'dirty-row' : ''}`.trim()}
                             >
                                 <td className="table-cell">{row.id}</td>
-                                <td className="table-cell">
+                                <td className="table-cell" onClick={() => setQrTarget(row)} style={{ cursor: 'pointer' }}>
                                     {(() => {
                                         const date = new Date(row.time);
                                         const hours = date.getHours().toString().padStart(2, '0');
@@ -335,6 +348,22 @@ const ReceptionControlPage = () => {
                     )}
                 </tbody>
             </Table>
+
+            <Modal
+                opened={qrModalOpen}
+                onClose={() => setQrModalOpen(false)}
+                title={qrTarget ? `チェック用QR（ID: ${qrTarget.id}）` : 'チェック用QR'}
+                centered
+            >
+                {qrTarget ? (
+                    <Canvas
+                        text={`${process.env.NEXT_PUBLIC_APP_URL || ''}/check-id?id=${qrTarget.id}&token=${typeof window !== 'undefined' ? (window.btoa(`${qrTarget.id}-${Math.floor(Date.now() / (1000 * 60 * 60))}-${process.env.SESSION_SECRET || 'default-secret'}`)).replace(/[^a-zA-Z0-9]/g, '') : ''}`}
+                        options={{ width: 220 }}
+                    />
+                ) : (
+                    <Text>行をクリックして対象を選択してください。</Text>
+                )}
+            </Modal>
 
             <Modal
                 opened={deleteModalOpen}
