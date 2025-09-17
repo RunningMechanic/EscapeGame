@@ -1,0 +1,184 @@
+/* モダンでおしゃれなスケジュールページのスタイル */
+
+.schedule-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.schedule-title {
+    font-size: 3rem;
+    margin-bottom: 30px;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+.schedule-select {
+    font-size: 1.2rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.schedule-select:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.schedule-button {
+    font-size: 1.3rem;
+    padding: 15px 30px;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.schedule-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+.schedule-button:disabled {
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+.schedule-group {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+/* 時間選択カードのアニメーション */
+.time-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.time-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.time-card:hover::before {
+    left: 100%;
+}
+
+/* 利用可能な時間帯のバッジスタイル */
+.available-time-badge {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border-radius: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.available-time-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+
+/* 予約済み時間帯のバッジスタイル */
+.booked-time-badge {
+    opacity: 0.7;
+    cursor: not-allowed;
+    border-radius: 12px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    color: #6c757d;
+    font-weight: 600;
+    text-align: center;
+    border: 2px dashed #dee2e6;
+}
+
+/* ステータスアラートのスタイル */
+.status-alert {
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    font-weight: 500;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .schedule-title {
+        font-size: 2.5rem;
+    }
+    
+    .schedule-select {
+        font-size: 1rem;
+    }
+    
+    .schedule-button {
+        font-size: 1.1rem;
+        padding: 12px 24px;
+    }
+    
+    .time-card {
+        margin-bottom: 8px;
+    }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    .schedule-container {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    }
+    
+    .schedule-group {
+        background: #34495e;
+        border-color: #4a6741;
+    }
+}
+
+/* アニメーション効果 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.schedule-container > * {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.schedule-container > *:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.schedule-container > *:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.schedule-container > *:nth-child(4) {
+    animation-delay: 0.3s;
+}

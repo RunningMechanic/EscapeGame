@@ -1,0 +1,27 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql" // データベースのプロバイダーを指定
+    url      = env("DATABASE_URL")
+}
+
+model Reception {
+    id            Int       @id @default(autoincrement())
+    time          DateTime
+    number        Int // 人数を保存する
+    name          String? // 参加者名
+    alignment     Boolean   @default(false)
+    timeTaken     Int? // タイム（秒）を保存する - 脱出にかかった時間
+    gameStarted   Boolean   @default(false) // ゲーム開始フラグ
+    gameStartTime DateTime? // ゲーム開始時刻
+    // ...他のカラム
+}
+
+model User {
+    id       Int    @id @default(autoincrement())
+    email    String @unique
+    password String
+    // 他のカラムがあれば追加
+}
