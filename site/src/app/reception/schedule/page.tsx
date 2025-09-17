@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Container,
     Title,
@@ -38,12 +38,44 @@ const ReceptionSchedulePage = () => {
     const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
     const [receptions, setReceptions] = useState<ReceptionData[]>([]);
     const [loading, setLoading] = useState(true);
+    const maxGroupSize = useMemo(() => Number(process.env.NEXT_PUBLIC_MAX_GROUP_SIZE || 8), []);
 
-    const timeOptions = [
-        "13:00", "13:15", "13:30", "13:45",
-        "14:00", "14:15", "14:30", "14:45",
-        "15:00", "15:15", "15:30", "15:45"
-    ];
+    // ENV からイベント日と時間帯設定を取得
+    const eventDay1 = process.env.NEXT_PUBLIC_EVENT_DAY1 || '';
+    const eventDay2 = process.env.NEXT_PUBLIC_EVENT_DAY2 || '';
+    const day1Start = process.env.NEXT_PUBLIC_DAY1_START || '09:30';
+    const day1End = process.env.NEXT_PUBLIC_DAY1_END || '14:30';
+    const day2Start = process.env.NEXT_PUBLIC_DAY2_START || '10:00';
+    const day2End = process.env.NEXT_PUBLIC_DAY2_END || '14:00';
+    const intervalMinutes = Number(process.env.NEXT_PUBLIC_INTERVAL_MINUTES || 15);
+
+    const todayDateStr = useMemo(() => {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }, []);
+
+    // 今日がイベント1日目 or 2日目かを判定
+    const activeDay: 1 | 2 = (todayDateStr === eventDay2) ? 2 : 1;
+
+    const slotRange = activeDay === 1 ? { start: day1Start, end: day1End } : { start: day2Start, end: day2End };
+
+    const timeOptions = useMemo(() => {
+        const options: string[] = [];
+        const [sh, sm] = slotRange.start.split(':').map(Number);
+        const [eh, em] = slotRange.end.split(':').map(Number);
+        let cur = sh * 60 + sm;
+        const end = eh * 60 + em;
+        while (cur <= end) {
+            const h = Math.floor(cur / 60).toString().padStart(2, '0');
+            const m = (cur % 60).toString().padStart(2, '0');
+            options.push(`${h}:${m}`);
+            cur += intervalMinutes;
+        }
+        return options;
+    }, [slotRange.start, slotRange.end, intervalMinutes]);
 
     // 予約データ取得
     useEffect(() => {
@@ -59,19 +91,14 @@ const ReceptionSchedulePage = () => {
 
     useEffect(() => {
         if (startTime) {
-            const today = new Date();
-            const jst = new Date(today.getTime() + 9 * 60 * 60 * 1000);
-            const yyyy = jst.getFullYear();
-            const mm = String(jst.getMonth() + 1).padStart(2, '0');
-            const dd = String(jst.getDate()).padStart(2, '0');
-            const dateStr = `${yyyy}-${mm}-${dd}T${startTime}:00`;
+            const dateStr = `${activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr}T${startTime}:00`;
             fetch(`/api/checkRoomAvailability?time=${encodeURIComponent(dateStr)}`)
                 .then(res => res.json())
-                .then(data => setIsAvailable(data.available));
+                .then(data => setIsAvailable(Boolean(data.available)));
         } else {
             setIsAvailable(null);
         }
-    }, [startTime]);
+    }, [startTime, activeDay, eventDay1, eventDay2, todayDateStr]);
 
     const handleStartTimeChange = (value: string | null) => {
         setStartTime(value);
@@ -91,21 +118,19 @@ const ReceptionSchedulePage = () => {
             alert('開始時刻を選択してください！');
             return;
         }
-        router.push(`/reception/guest-count?start=${startTime}`);
+        const dateStr = `${activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr}T${startTime}:00`;
+        router.push(`/reception/guest-count?start=${encodeURIComponent(dateStr)}`);
     };
 
     // 予約済みかどうか判定
-    function isBooked(time: string) {
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const jst = new Date(today.getTime() + 9 * 60 * 60 * 1000);
-        const mm = String(jst.getMonth() + 1).padStart(2, '0');
-        const dd = String(jst.getDate());
-        const dateStr = `${yyyy}-${mm}-${dd}T${time}:00`;
-        return receptions.some(
-            (r) =>
-                new Date(r.time).toISOString().slice(0, 16) === new Date(dateStr).toISOString().slice(0, 16)
-        );
+    function remainingAt(time: string) {
+        const dateStr = `${activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr}T${time}:00`;
+        const targetIso = new Date(dateStr).toISOString().slice(0, 16);
+        const used = receptions
+            .filter(r => new Date(r.time).toISOString().slice(0, 16) === targetIso)
+            .reduce((sum, r) => sum + (r.room ? 0 : 0) + (r as any).number || 0, 0);
+        const remaining = Math.max(0, maxGroupSize - used);
+        return remaining;
     }
 
     if (loading) {
@@ -149,7 +174,8 @@ const ReceptionSchedulePage = () => {
 
                         <Grid gutter="lg">
                             {timeOptions.map((time) => {
-                                const booked = isBooked(time);
+                                const remaining = remainingAt(time);
+                                const booked = remaining === 0;
                                 const isSelected = startTime === time;
                                 const [hours, minutes] = time.split(':').map(Number);
                                 const endMinutes = minutes + 10;
@@ -200,6 +226,11 @@ const ReceptionSchedulePage = () => {
                                                 {booked && (
                                                     <Badge size="sm" color="red" variant="light" radius="md">
                                                         予約済み
+                                                    </Badge>
+                                                )}
+                                                {!booked && (
+                                                    <Badge size="sm" color="green" variant="light" radius="md">
+                                                        残席 {remaining}
                                                     </Badge>
                                                 )}
                                                 {isSelected && (

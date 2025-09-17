@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from "react";
-import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput } from '@mantine/core';
+import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge } from '@mantine/core';
 import { IconDeviceFloppy, IconRestore } from '@tabler/icons-react';
 import { RxReload } from "react-icons/rx";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
@@ -25,6 +25,8 @@ const ReceptionControlPage = () => {
     const [showUncheckedOnly, setShowUncheckedOnly] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<ReceptionData | null>(null);
+    const [dirtyIds, setDirtyIds] = useState<Set<number>>(new Set());
+    const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
 
     const fetchData = async () => {
         setLoading(true);
@@ -57,6 +59,18 @@ const ReceptionControlPage = () => {
 
     useEffect(() => { fetchData(); }, []);
 
+    // 未保存データがある場合の離脱警告
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            if (dirtyIds.size > 0) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [dirtyIds]);
+
     // データが配列であることを確認してからフィルタリング
     const filteredData = Array.isArray(data) ? data.filter((row) =>
         Object.values(row).some((value) =>
@@ -66,6 +80,7 @@ const ReceptionControlPage = () => {
 
     const handleSave = async (row: ReceptionData) => {
         try {
+            setSavingIds((prev) => new Set(prev).add(row.id));
             const response = await fetch('/api/updateReception', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -77,10 +92,38 @@ const ReceptionControlPage = () => {
             } else {
                 const result = await response.json();
                 setData((prev) => prev.map((r) => r.id === row.id ? { ...r, ...result.participant } : r));
+                // 保存完了した行の未保存フラグを解除
+                setDirtyIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(row.id);
+                    return next;
+                });
             }
         } catch (e) {
             console.error(e);
             alert('保存中にエラーが発生しました');
+        } finally {
+            setSavingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(row.id);
+                return next;
+            });
+        }
+    };
+
+    const handleBulkSave = async () => {
+        // 変更のあるIDを固定化
+        const targetIds = Array.from(dirtyIds);
+        for (const id of targetIds) {
+            const row = data.find((r) => r.id === id);
+            if (row) {
+                // 個別保存を順次実行
+                // eslint-disable-next-line no-await-in-loop
+                await handleSave(row);
+            }
+        }
+        if (targetIds.length > 0) {
+            alert('すべての変更を保存しました');
         }
     };
 
@@ -150,6 +193,11 @@ const ReceptionControlPage = () => {
             <Text size="xl" mb="lg">
                 Reception Control
             </Text>
+            <div className="guidance-banner">
+                <Text size="sm">
+                    入力すると行がハイライトされ、フロッピーボタンが有効になります。行の保存、または右上の「変更をすべて保存」で確定できます。
+                </Text>
+            </div>
             <div className="toolbar">
                 <TextInput
                     placeholder="Search..."
@@ -171,6 +219,19 @@ const ReceptionControlPage = () => {
                         <RxReload />
                     </Button>
                 </Tooltip>
+                <div className="toolbar-right">
+                    {dirtyIds.size > 0 && (
+                        <Badge color="yellow" variant="filled">未保存: {dirtyIds.size}</Badge>
+                    )}
+                    <Button
+                        variant="filled"
+                        color="blue"
+                        disabled={dirtyIds.size === 0}
+                        onClick={handleBulkSave}
+                    >
+                        変更をすべて保存
+                    </Button>
+                </div>
             </div>
             <Table striped highlightOnHover className="data-table">
                 <thead>
@@ -190,7 +251,7 @@ const ReceptionControlPage = () => {
                         filteredData.map((row) => (
                             <tr
                                 key={row.id}
-                                className={row.alignment ? "checked-row" : ""}
+                                className={`${row.alignment ? 'checked-row' : ''} ${dirtyIds.has(row.id) ? 'dirty-row' : ''}`.trim()}
                             >
                                 <td className="table-cell">{row.id}</td>
                                 <td className="table-cell">
@@ -206,7 +267,10 @@ const ReceptionControlPage = () => {
                                     <TextInput
                                         value={row.name || ''}
                                         placeholder="名前"
-                                        onChange={(e) => setData((prev) => prev.map((r) => r.id === row.id ? { ...r, name: e.target.value } : r))}
+                                        onChange={(e) => {
+                                            setData((prev) => prev.map((r) => r.id === row.id ? { ...r, name: e.target.value } : r));
+                                            setDirtyIds((prev) => new Set(prev).add(row.id));
+                                        }}
                                         size="xs"
                                     />
                                 </td>
@@ -228,12 +292,20 @@ const ReceptionControlPage = () => {
                                         min={0}
                                         step={1}
                                         size="xs"
-                                        onChange={(val) => setData((prev) => prev.map((r) => r.id === row.id ? { ...r, timeTaken: Number(val) } : r))}
+                                        onChange={(val) => {
+                                            setData((prev) => prev.map((r) => r.id === row.id ? { ...r, timeTaken: Number(val) } : r));
+                                            setDirtyIds((prev) => new Set(prev).add(row.id));
+                                        }}
                                     />
                                 </td>
                                 <td className="table-cell">
-                                    <Tooltip label="保存">
-                                        <ActionIcon color="blue" size="sm" onClick={() => handleSave(row)}>
+                                    <Tooltip label={dirtyIds.has(row.id) ? "保存" : "変更なし"}>
+                                        <ActionIcon
+                                            color="blue"
+                                            size="sm"
+                                            disabled={!dirtyIds.has(row.id) || savingIds.has(row.id)}
+                                            onClick={() => handleSave(row)}
+                                        >
                                             <IconDeviceFloppy size="1rem" />
                                         </ActionIcon>
                                     </Tooltip>

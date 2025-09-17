@@ -10,13 +10,22 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // 同じ時間帯に既に予約があるかチェック（教室は1つだけなので）
-        const exists = await prisma.reception.findFirst({
-            where: {
-                time: new Date(time),
-            },
+        const targetTime = new Date(time);
+        if (isNaN(targetTime.getTime())) {
+            return NextResponse.json({ error: 'Invalid time format' }, { status: 400 });
+        }
+
+        const maxGroupSize = Number(process.env.MAX_GROUP_SIZE || 8);
+
+        // 同時刻の合計人数を集計
+        const bookings = await prisma.reception.findMany({
+            where: { time: targetTime },
+            select: { number: true },
         });
-        return NextResponse.json({ available: !exists });
+
+        const used = bookings.reduce((sum, b) => sum + (b.number || 0), 0);
+        const remaining = Math.max(0, maxGroupSize - used);
+        return NextResponse.json({ available: remaining > 0, remaining, max: maxGroupSize });
     } catch (error) {
         console.error('DB error:', error);
         return NextResponse.json({ error: 'Database error. テーブルが存在しない可能性があります。' }, { status: 500 });

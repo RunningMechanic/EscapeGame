@@ -32,17 +32,17 @@ export async function GET(request: NextRequest) {
     return errorResponse('開始時間の形式が不正です');
   }
 
-  // 既存の予約を取得して重複チェック（教室は1つだけ）
-  const existingBookings = await prisma.reception.findMany({
-    where: {
-      time: timeObj,
-    },
-    select: { time: true },
-    orderBy: { time: 'asc' },
-  });
+  const maxGroupSize = Number(process.env.MAX_GROUP_SIZE || 8);
 
-  if (existingBookings.length > 0) {
-    return errorResponse('この時間はすでに予約されています');
+  // 同時刻の合計人数を取得し残席確認
+  const existingAtSlot = await prisma.reception.findMany({
+    where: { time: timeObj },
+    select: { number: true },
+  });
+  const used = existingAtSlot.reduce((sum, r) => sum + (r.number || 0), 0);
+  const remaining = Math.max(0, maxGroupSize - used);
+  if (count > remaining) {
+    return NextResponse.json({ success: false, error: `残席が足りません（残り: ${remaining}）`, remaining, max: maxGroupSize }, { status: 409 });
   }
 
   // 予約を保存

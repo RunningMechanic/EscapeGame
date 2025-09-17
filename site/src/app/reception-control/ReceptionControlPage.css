@@ -16,6 +16,13 @@ body {
     margin-bottom: 20px;
 }
 
+.toolbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .search-input {
     flex: 1;
 }
@@ -68,4 +75,17 @@ body {
 .checked-row td {
     background-color: #d1b33e !important;
     transition: background-color 0.3s;
+}
+
+.dirty-row td {
+    outline: 2px dashed #ff9800;
+    outline-offset: -2px;
+}
+
+.guidance-banner {
+    background: #e3f2fd;
+    color: #0d47a1;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
 }

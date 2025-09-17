@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button, Group, Text, Space } from '@mantine/core';
 import { useRouter, useSearchParams } from 'next/navigation';
 import './ReceptionDisplayPage.css'; // CSSファイルをインポート
@@ -10,7 +10,22 @@ const ReceptionGuestCountPage = () => {
     const [isNavigating, setIsNavigating] = useState(false); // 遷移中の状態を管理
     const router = useRouter();
     const searchParams = useSearchParams();
-    const start = searchParams.get('start'); // startパラメータを取得
+    const start = searchParams.get('start'); // ISO形式の開始時刻
+    const [remaining, setRemaining] = useState<number>(0);
+    const maxGroupSize = useMemo(() => Number(process.env.NEXT_PUBLIC_MAX_GROUP_SIZE || 8), []);
+    useEffect(() => {
+        const load = async () => {
+            if (!start) return;
+            try {
+                const res = await fetch(`/api/checkRoomAvailability?time=${encodeURIComponent(start)}`);
+                const data = await res.json();
+                setRemaining(Number(data.remaining || 0));
+            } catch (e) {
+                setRemaining(0);
+            }
+        };
+        load();
+    }, [start]);
     const handleButtonClick = (buttonNumber: number) => {
         setSelectedButton(buttonNumber);
     };
@@ -29,7 +44,7 @@ const ReceptionGuestCountPage = () => {
         <div className="guest-count-container">
             <Text size="xl" className="row-text">人数を選んでね</Text>
             <Group grow>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((number) => (
+                {Array.from({ length: Math.min(remaining, maxGroupSize) }, (_, i) => i + 1).map((number) => (
                     <Button
                         key={number}
                         color="teal"
