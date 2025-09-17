@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from "react";
 import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge } from '@mantine/core';
-import { IconDeviceFloppy, IconRestore } from '@tabler/icons-react';
+import { IconDeviceFloppy, IconRestore, IconQrcode } from '@tabler/icons-react';
 import { RxReload } from "react-icons/rx";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { IconTrash } from '@tabler/icons-react';
@@ -223,15 +223,6 @@ const ReceptionControlPage = () => {
                         <RxReload />
                     </Button>
                 </Tooltip>
-                <Tooltip label="選択IDのチェック用QRを生成">
-                    <Button
-                        className="toolbar-button"
-                        disabled={!qrTarget}
-                        onClick={() => setQrModalOpen(true)}
-                    >
-                        QR生成
-                    </Button>
-                </Tooltip>
                 <div className="toolbar-right">
                     {dirtyIds.size > 0 && (
                         <Badge color="yellow" variant="filled">未保存: {dirtyIds.size}</Badge>
@@ -267,7 +258,7 @@ const ReceptionControlPage = () => {
                                 className={`${row.alignment ? 'checked-row' : ''} ${dirtyIds.has(row.id) ? 'dirty-row' : ''}`.trim()}
                             >
                                 <td className="table-cell">{row.id}</td>
-                                <td className="table-cell" onClick={() => setQrTarget(row)} style={{ cursor: 'pointer' }}>
+                                <td className="table-cell">
                                     {(() => {
                                         const date = new Date(row.time);
                                         const hours = date.getHours().toString().padStart(2, '0');
@@ -315,25 +306,31 @@ const ReceptionControlPage = () => {
                                     <Tooltip label={dirtyIds.has(row.id) ? "保存" : "変更なし"}>
                                         <ActionIcon
                                             color="blue"
-                                            size="sm"
+                                            size="md"
                                             disabled={!dirtyIds.has(row.id) || savingIds.has(row.id)}
                                             onClick={() => handleSave(row)}
+                                            mr={4}
                                         >
-                                            <IconDeviceFloppy size="1rem" />
+                                            <IconDeviceFloppy size="1.25rem" />
                                         </ActionIcon>
                                     </Tooltip>
                                     <Tooltip label="タイマーリセット">
-                                        <ActionIcon color="orange" size="sm" onClick={() => handleResetTimer(row.id)}>
-                                            <IconRestore size="1rem" />
+                                        <ActionIcon color="orange" size="md" onClick={() => handleResetTimer(row.id)} mr={4}>
+                                            <IconRestore size="1.25rem" />
                                         </ActionIcon>
                                     </Tooltip>
-                                    <Tooltip label="操作">
+                                    <Tooltip label="QR表示">
+                                        <ActionIcon color="grape" size="md" onClick={() => { setQrTarget(row); setQrModalOpen(true); }} mr={4}>
+                                            <IconQrcode size="1.25rem" />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                    <Tooltip label="削除">
                                         <ActionIcon
                                             color="red"
-                                            size="sm"
+                                            size="md"
                                             onClick={() => handleDeleteClick(row)}
                                         >
-                                            <IconTrash size="1rem" />
+                                            <IconTrash size="1.25rem" />
                                         </ActionIcon>
                                     </Tooltip>
                                 </td>
@@ -356,10 +353,7 @@ const ReceptionControlPage = () => {
                 centered
             >
                 {qrTarget ? (
-                    <Canvas
-                        text={`${process.env.NEXT_PUBLIC_APP_URL || ''}/check-id?id=${qrTarget.id}&token=${typeof window !== 'undefined' ? (window.btoa(`${qrTarget.id}-${Math.floor(Date.now() / (1000 * 60 * 60))}-${process.env.SESSION_SECRET || 'default-secret'}`)).replace(/[^a-zA-Z0-9]/g, '') : ''}`}
-                        options={{ width: 220 }}
-                    />
+                    <QRForId id={qrTarget.id} Canvas={Canvas} />
                 ) : (
                     <Text>行をクリックして対象を選択してください。</Text>
                 )}
@@ -402,3 +396,22 @@ const ReceptionControlPage = () => {
 };
 
 export default ReceptionControlPage;
+
+const QRForId = ({ id, Canvas }: { id: number; Canvas: any }) => {
+    const [url, setUrl] = React.useState<string | null>(null);
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const res = await fetch(`/api/getCheckUrl?id=${id}`);
+                const data = await res.json();
+                if (mounted) setUrl(data?.url || null);
+            } catch {
+                if (mounted) setUrl(null);
+            }
+        })();
+        return () => { mounted = false; };
+    }, [id]);
+    if (!url) return <Text>読み込み中...</Text>;
+    return <Canvas text={url} options={{ width: 220 }} />;
+};
