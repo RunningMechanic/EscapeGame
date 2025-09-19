@@ -1,6 +1,6 @@
 import prisma from '@/lib/db';
 import { errorResponse, successResponse } from '@/utils/apiUtils';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateToken } from '@/utils/tokenUtils';
 
 // GET メソッドのハンドラー
