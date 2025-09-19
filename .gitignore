@@ -1,8 +1,7 @@
-ws/node_modules
-site/node_modules
-site/.next
-site/.env
+node_modules
+.next
 
+.env
 *.pem
 
 
