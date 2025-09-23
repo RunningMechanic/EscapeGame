@@ -24,12 +24,23 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 既にゲームが開始されているかチェック
+        // 既にゲームが開始されている場合は冪等に成功レスポンスを返す
         if (participant.gameStarted) {
-            return NextResponse.json(
-                { error: 'この参加者は既にゲームを開始しています' },
-                { status: 409 }
-            );
+            let startTime = participant.gameStartTime ?? new Date();
+            // gameStarted=true かつ gameStartTime が無い場合は今を補完
+            if (!participant.gameStartTime) {
+                await prisma.reception.update({
+                    where: { id: participantId },
+                    data: { gameStartTime: startTime }
+                });
+            }
+            const sessionId = Number(startTime) || Date.now();
+            return NextResponse.json({
+                success: true,
+                sessionId,
+                participant,
+                message: '既に開始済みのためセッションを再利用しました'
+            });
         }
 
         // ゲーム開始フラグと開始時刻を更新

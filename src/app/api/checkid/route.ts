@@ -6,20 +6,18 @@ import { validationErrorResponse, authErrorResponse, notFoundErrorResponse, erro
 // GET メソッドのハンドラー
 export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id'); // URLパラメータからidを取得
-    const token = searchParams.get('token'); // セッショントークンを取得
+    const id = searchParams.get('id');
+    const token = searchParams.get('token');
 
     if (!id) {
         return validationErrorResponse('IDが指定されていません');
     }
 
-    // セッショントークンの検証
     if (!token || !validateToken(id, token)) {
         return authErrorResponse('セッショントークンが無効です');
     }
 
     try {
-        // Prismaで指定IDのReceptionDataを取得
         const reception = await prisma.reception.findUnique({
             where: { id: Number(id) },
         });
@@ -28,7 +26,6 @@ export async function GET(req: Request) {
             return notFoundErrorResponse('指定されたIDのデータが見つかりません');
         }
 
-        // フロントエンドが期待する形式でデータを返す
         const responseData = {
             id: reception.id,
             start: reception.time ? new Date(reception.time).toLocaleTimeString('ja-JP', {
@@ -47,3 +44,5 @@ export async function GET(req: Request) {
         return errorResponse('データベースエラーが発生しました');
     }
 }
+
+
