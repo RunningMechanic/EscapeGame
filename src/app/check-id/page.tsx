@@ -73,13 +73,17 @@ const CheckIdPage = () => {
                 }
 
                 // 既存のIDがある場合、そのIDのデータを取得してchecker状態を確認
-                if (existingId && existingId !== id) {
+                console.log('既存のID:', existingId);
+                console.log('現在のID:', id);
+                if (existingId != id) {
+                    console.log("重複予約")
                     try {
                         const existingResponse = await fetch(`/api/checkid?id=${existingId}&token=${existingToken}`);
                         if (existingResponse.ok) {
                             const existingData = await existingResponse.json();
-                            // 既存のIDのcheckerがfalseの場合（来場未済）
-                            if (existingData.checker === false) {
+                            console.log('既存のIDのデータ:', existingData.checker);
+                            // 既存のIDのcheckerがfalseの場合（来場未）
+                            if (existingData.checker === true) {
                                 setError(`一度目の受付が終わらないと二度目の受付はできません。既存のID: ${existingId}`);
                                 setLoading(false);
                                 return;
@@ -152,10 +156,14 @@ const CheckIdPage = () => {
             if (checkInResponse.ok) {
                 const updateData = await checkInResponse.json();
                 console.log('updateAlignment成功:', updateData);
+
                 setCheckInStatus('success');
                 setNameModalOpen(false);
 
-                // localStorageにIDとトークンを保存（クライアントサイドでのみ実行）
+                // 🔽 dataを更新してUIに反映
+                setData(prev => prev ? { ...prev, name: nameToSave, checker: true } : { ...updateData });
+
+                // localStorageにIDとトークンを保存
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('currentId', id || '');
                     localStorage.setItem('currentToken', token || '');
@@ -313,7 +321,7 @@ const CheckIdPage = () => {
                         {error.includes('一度目の受付が終わらないと二度目の受付はできません') ? (
                             <>
                                 <Text c="red" size="lg" ta="center" fw={600}>
-                                    一度目の受付が終わらないと二度目の受付はできません
+                                    一度目の受付が終わらないと二度目の受付はできません\nURLを忘れた場合はI2受付まで。
                                 </Text>
                                 <Card shadow="md" p="lg" radius="lg" withBorder style={{ maxWidth: 400 }}>
                                     <Stack gap="md">
@@ -480,9 +488,9 @@ const CheckIdPage = () => {
                                                     <IconCheck size={20} />
                                                 </ThemeIcon>
                                                 <Stack gap={2}>
-                                                    <Text size="sm" c="dimmed" fw={500}>来場状況</Text>
+                                                    <Text size="sm" c="dimmed" fw={500}>スマホ連携状況</Text>
                                                     <Text size="lg" fw={700} c="dark">
-                                                        {data.checker ? '来場済み' : '未来場'}
+                                                        {data.checker ? '済み' : '未'}
                                                     </Text>
                                                 </Stack>
                                             </Group>

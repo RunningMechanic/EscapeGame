@@ -244,7 +244,7 @@ const ReceptionControlPage = () => {
                         <th>開始希望時間</th>
                         <th>人数</th>
                         <th>参加者名</th>
-                        <th>来場済み</th>
+                        <th>スマホ連携</th>
                         <th>ゲーム開始時間</th>
                         <th>タイム</th>
                         <th>操作</th>
