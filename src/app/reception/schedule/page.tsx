@@ -126,20 +126,31 @@ const ReceptionSchedulePage = () => {
     // 予約済みかどうか判定
     function remainingAt(time: string) {
         const dateStr = `${activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr} ${time}:00`;
+        console.log('target dateStr:', dateStr);
     
-        console.log('target:', dateStr);
+        // alignment が true のものだけ
+        const alignedReceptions = receptions.filter(r => r.alignment);
+        console.log('alignedReceptions:', alignedReceptions);
     
-        const used = receptions
-            .filter(r => r.alignment)               // alignment が true
-            .filter(r => r.time.startsWith(dateStr)) // 文字列で日付+時間を比較
-            .reduce((sum, r) => sum + ((r as any).number || 0), 0);
+        // 日付と時間でフィルタ
+        const matchedReceptions = alignedReceptions.filter(r => r.time.startsWith(dateStr));
+        console.log('matchedReceptions:', matchedReceptions);
     
-        console.log('maxGroupSize', maxGroupSize);
-        console.log('used', used);
+        // number を合計
+        const used = matchedReceptions.reduce((sum, r) => {
+            const num = (r as any).number || 0;
+            console.log('adding number:', num, 'sum before:', sum);
+            return sum + num;
+        }, 0);
+    
+        console.log('used total:', used);
     
         const remaining = Math.max(0, maxGroupSize - used);
+        console.log('remaining:', remaining);
+    
         return remaining;
     }
+    
     
 
     if (loading) {
