@@ -125,35 +125,36 @@ const ReceptionSchedulePage = () => {
 
     function remainingAt(time: string) {
         const targetDateStr = activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr;
-        const [hour, minute] = time.split(':').map(Number);
+        const [hourStr, minuteStr] = time.split(':');
+        const hour = Number(hourStr);
+        const minute = Number(minuteStr);
     
-        const target = new Date(targetDateStr);
-        target.setHours(hour, minute, 0, 0); // JSTの時間でセット
-    
-        console.log('target date:', target);
+        // JST を UTC に変換（-9時間）
+        const targetUTC = new Date(`${targetDateStr}T${time}:00`);
+        console.log('targetUTC:', targetUTC.toISOString());
     
         const used = receptions
-            .filter(r => r.alignment)  // alignmentがtrueのみ
+            .filter(r => r.alignment)
             .filter(r => {
                 const rTime = new Date(r.time);
-                console.log('rTime:', rTime);
-                console.log('target:', target);
+                console.log('rTime UTC:', rTime.toISOString());
+    
+                // UTC で時刻を比較
                 return (
-                    rTime.getFullYear() === target.getFullYear() &&
-                    rTime.getMonth() === target.getMonth() &&
-                    rTime.getDate() === target.getDate() &&
-                    rTime.getHours() === target.getHours() &&
-                    rTime.getMinutes() === target.getMinutes()
+                    rTime.getUTCFullYear() === targetUTC.getUTCFullYear() &&
+                    rTime.getUTCMonth() === targetUTC.getUTCMonth() &&
+                    rTime.getUTCDate() === targetUTC.getUTCDate() &&
+                    rTime.getUTCHours() === targetUTC.getUTCHours() &&
+                    rTime.getUTCMinutes() === targetUTC.getUTCMinutes()
                 );
             })
             .reduce((sum, r) => sum + ((r as any).number || 0), 0);
     
-        console.log('used:', used);
         const remaining = Math.max(0, maxGroupSize - used);
-        console.log('remaining:', remaining);
-    
+        console.log('remaining seats:', remaining);
         return remaining;
     }
+    
     
     
     
