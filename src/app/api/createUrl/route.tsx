@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       const yyyy = today.getFullYear();
       const mm = String(today.getMonth() + 1).padStart(2, '0');
       const dd = String(today.getDate()).padStart(2, '0');
-      timeObj = new Date(`${yyyy}-${mm}-${dd}T${start}`);
+      timeObj = new Date(`${yyyy}-${mm}-${dd}T${start}:00+09:00`);
     } else {
       timeObj = new Date(start);
     }
