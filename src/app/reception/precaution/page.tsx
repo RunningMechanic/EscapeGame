@@ -37,7 +37,7 @@ const PrecautionsPage = () => {
                             <Group gap="md">
                                 <IconAlertTriangle size={24} color="#ff6b6b" />
                                 <Text c="white">
-                                    ちゃんとまもれ
+                                    MCの指示に従ってください。
                                 </Text>
                             </Group>
 
@@ -49,11 +49,6 @@ const PrecautionsPage = () => {
                             <Group gap="md">
                                 <IconUsers size={24} color="#74b9ff" />
                                 <Text c="white">定員：６～８名</Text>
-                            </Group>
-
-                            <Group gap="md">
-                                <IconShield size={24} color="#55a3ff" />
-                                <Text c="white">???</Text>
                             </Group>
                         </Stack>
                     </Stack>
