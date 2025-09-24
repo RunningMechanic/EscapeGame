@@ -23,7 +23,7 @@ export default function Home() {
               <ThemeIcon size="lg" radius="xl" variant="gradient" gradient={{ from: 'purple', to: 'pink' }}>
                 <IconLock size={24} />
               </ThemeIcon>
-              <Title order={2} className="text-white font-bold text-lg sm:text-xl">
+              <Title order={2} className="text-white font-bold text-lg sm:text-lg">
                 脱出ゲーム
               </Title>
             </Group>
@@ -103,12 +103,12 @@ export default function Home() {
               </Card>
             </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
-              <Card className="h-full bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300">
-                <Stack align="center" gap="md">
+              <Card className="h-32 bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all duration-300">
+                <Stack align="center" gap="sm">
                   <ThemeIcon size="xl" radius="xl" variant="gradient" gradient={{ from: 'red', to: 'pink' }}>
                     <IconTrophy size={32} />
                   </ThemeIcon>
-                  <Text size="lg" fw={600} className="text-white text-center">
+                  <Text size="lg" fw={500} className="text-white text-center">
                     ランキング
                   </Text>
                   <Text size="sm" className="text-white/70 text-center">
@@ -157,7 +157,7 @@ export default function Home() {
         {/* フッター */}
         <Box className="py-8 text-center">
           <Text size="sm" className="text-white/50">
-            © 2025 I2文化祭 市工パピリオン脱出ゲーム
+            Copyright © 2025 EscapeGame All rights reserved.
           </Text>
         </Box>
       </Container>
