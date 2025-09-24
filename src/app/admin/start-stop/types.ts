@@ -2,11 +2,12 @@ export type ScanStatus = 'idle' | 'waiting' | 'started' | 'stopped';
 
 export interface GameSession {
     id: number;
+    participantId: number | null; // null許容
+    token?: string;               // undefinedも許容
+    isActive: boolean;
     startTime: Date | null;
     endTime: Date | null;
-    isActive: boolean;
     timeTaken: number | null;
-    participantId: number | null;
 }
 
 export interface ParticipantInfo {
@@ -23,8 +24,7 @@ export interface PendingCandidate {
     number: number;
     start: string;
     name?: string;
+    token?: string;
 }
 
 export type ParticipantMetaById = Record<number, { number: number; name?: string | null; start: string }>;
-
-

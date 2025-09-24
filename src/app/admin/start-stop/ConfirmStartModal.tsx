@@ -33,5 +33,3 @@ export const ConfirmStartModal: React.FC<Props> = ({ opened, pendingCandidate, o
 };
 
 export default ConfirmStartModal;
-
-
