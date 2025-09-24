@@ -123,33 +123,36 @@ const ReceptionSchedulePage = () => {
         router.push(`/reception/guest-count?start=${encodeURIComponent(dateStr)}`);
     };
 
-    // 予約済みかどうか判定
     function remainingAt(time: string) {
-        const dateStr = `${activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr} ${time}:00`;
-        console.log('target dateStr:', dateStr);
+        const targetDateStr = activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr;
+        const [hour, minute] = time.split(':').map(Number);
     
-        // alignment が true のものだけ
-        const alignedReceptions = receptions.filter(r => r.alignment);
-        console.log('alignedReceptions:', alignedReceptions);
+        const target = new Date(targetDateStr);
+        target.setHours(hour, minute, 0, 0); // JSTの時間でセット
     
-        // 日付と時間でフィルタ
-        const matchedReceptions = alignedReceptions.filter(r => r.time.startsWith(dateStr));
-        console.log('matchedReceptions:', matchedReceptions);
+        console.log('target date:', target);
     
-        // number を合計
-        const used = matchedReceptions.reduce((sum, r) => {
-            const num = (r as any).number || 0;
-            console.log('adding number:', num, 'sum before:', sum);
-            return sum + num;
-        }, 0);
+        const used = receptions
+            .filter(r => r.alignment)  // alignmentがtrueのみ
+            .filter(r => {
+                const rTime = new Date(r.time);
+                return (
+                    rTime.getFullYear() === target.getFullYear() &&
+                    rTime.getMonth() === target.getMonth() &&
+                    rTime.getDate() === target.getDate() &&
+                    rTime.getHours() === target.getHours() &&
+                    rTime.getMinutes() === target.getMinutes()
+                );
+            })
+            .reduce((sum, r) => sum + ((r as any).number || 0), 0);
     
-        console.log('used total:', used);
-    
+        console.log('used:', used);
         const remaining = Math.max(0, maxGroupSize - used);
         console.log('remaining:', remaining);
     
         return remaining;
     }
+    
     
     
 
