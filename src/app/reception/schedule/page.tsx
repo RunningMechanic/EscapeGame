@@ -136,6 +136,8 @@ const ReceptionSchedulePage = () => {
             .filter(r => r.alignment)  // alignmentがtrueのみ
             .filter(r => {
                 const rTime = new Date(r.time);
+                console.log('rTime:', rTime);
+                console.log('target:', target);
                 return (
                     rTime.getFullYear() === target.getFullYear() &&
                     rTime.getMonth() === target.getMonth() &&
