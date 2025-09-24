@@ -23,10 +23,8 @@ export async function GET(request: NextRequest) {
       const mm = String(today.getMonth() + 1).padStart(2, '0');
       const dd = String(today.getDate()).padStart(2, '0');
       timeObj = new Date(`${yyyy}-${mm}-${dd}T${start}:00+09:00`);
-      console.log(timeObj.toString());
-      
     } else {
-      timeObj = new Date(start);
+      timeObj = new Date(start+':00+09:00');
     }
   }
 
