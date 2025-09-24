@@ -118,7 +118,7 @@ const EntryPage = () => {
                                 </Text>
                                 <Text ta="center" c="dimmed" size="md">
                                     6〜8名で協力プレイ<br />
-                                    <Text span c="orange" size="sm">人数が少ない場合は班を合併</Text>
+                                    <Text span c="green" size="sm">人数が少ない場合は班を合併</Text>
                                 </Text>
                             </Stack>
                         </Card>
