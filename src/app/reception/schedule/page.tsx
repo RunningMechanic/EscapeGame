@@ -124,37 +124,37 @@ const ReceptionSchedulePage = () => {
     };
 
     function remainingAt(time: string) {
-        const targetDateStr = activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr;
-        const [hourStr, minuteStr] = time.split(':');
-        const hour = Number(hourStr);
-        const minute = Number(minuteStr);
-    
-        // JST を UTC に変換（-9時間）
-        const targetUTC = new Date(`${targetDateStr}T${time}:00`);
-        console.log('targetUTC:', targetUTC.toISOString());
-    
-        const used = receptions
-            .filter(r => r.alignment)
-            .filter(r => {
-                const rTime = new Date(r.time);
-                console.log('rTime UTC:', rTime.toISOString());
-    
-                // UTC で時刻を比較
-                return (
-                    rTime.getUTCFullYear() === targetUTC.getUTCFullYear() &&
-                    rTime.getUTCMonth() === targetUTC.getUTCMonth() &&
-                    rTime.getUTCDate() === targetUTC.getUTCDate() &&
-                    rTime.getUTCHours() === targetUTC.getUTCHours() &&
-                    rTime.getUTCMinutes() === targetUTC.getUTCMinutes()
-                );
-            })
-            .reduce((sum, r) => sum + ((r as any).number || 0), 0);
-    
-        const remaining = Math.max(0, maxGroupSize - used);
-        console.log('remaining seats:', remaining);
-        return remaining;
-    }
-    
+    const targetDateStr = activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr;
+    const [hourStr, minuteStr] = time.split(':');
+    const hour = Number(hourStr);
+    const minute = Number(minuteStr);
+
+    // JST を UTC に変換（-9時間）
+    const targetUTC = new Date(`${targetDateStr}T${time}:00`);
+    console.log('targetUTC:', targetUTC.toISOString());
+
+    const used = receptions
+        .filter(r => r.alignment)
+        .filter(r => {
+            const rTime = new Date(r.time);
+            console.log('rTime UTC:', rTime.toISOString());
+
+            // UTC で時刻を比較
+            return (
+                rTime.getUTCFullYear() === targetUTC.getUTCFullYear() &&
+                rTime.getUTCMonth() === targetUTC.getUTCMonth() &&
+                rTime.getUTCDate() === targetUTC.getUTCDate() &&
+                rTime.getUTCHours()+9 === targetUTC.getUTCHours() &&
+                rTime.getUTCMinutes() === targetUTC.getUTCMinutes()
+            );
+        })
+        .reduce((sum, r) => sum + ((r as any).number || 0), 0);
+
+    const remaining = Math.max(0, maxGroupSize - used);
+    console.log('remaining seats:', remaining);
+    return remaining;
+}
+
     
     
     
