@@ -29,6 +29,7 @@ interface ReceptionData {
     id: number;
     time: string;
     room: number;
+    alignment: boolean;
 }
 
 const ReceptionSchedulePage = () => {
@@ -126,9 +127,12 @@ const ReceptionSchedulePage = () => {
     function remainingAt(time: string) {
         const dateStr = `${activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr}T${time}:00`;
         const targetIso = new Date(dateStr).toISOString().slice(0, 16);
+
         const used = receptions
             .filter(r => new Date(r.time).toISOString().slice(0, 16) === targetIso)
+            .filter(r => r.alignment)
             .reduce((sum, r) => sum + (r.room ? 0 : 0) + (r as any).number || 0, 0);
+        
         const remaining = Math.max(0, maxGroupSize - used);
         return remaining;
     }
