@@ -228,11 +228,25 @@ const ReceptionSchedulePage = () => {
                                                         予約済み
                                                     </Badge>
                                                 )}
-                                                {!booked && (
-                                                    <Badge size="lg" color="green" variant="light" radius="md" styles={{ root: { fontWeight: 800, letterSpacing: 0.5 } }}>
-                                                        残席 {remaining}
-                                                    </Badge>
-                                                )}
+{!booked && (
+  <Badge
+    size="lg"
+    color="green"
+    variant="light"
+    radius="md"
+    styles={{
+      root: {
+        fontWeight: 800,
+        letterSpacing: 0.5,
+        fontSize: '1.25rem',  // フォントサイズを大きく
+        padding: '0.75rem 1.5rem',  // 高さと横幅を大きく
+      },
+    }}
+  >
+    残席 {remaining}
+  </Badge>
+)}
+
                                                 {isSelected && (
                                                     <Badge size="sm" color="white" variant="filled" c="dark" radius="md">
                                                         選択中
