@@ -24,6 +24,7 @@ import {
     IconMapPin,
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
+import { DateTime } from "luxon"
 
 interface ReceptionData {
     id: number;
@@ -124,38 +125,29 @@ const ReceptionSchedulePage = () => {
     };
 
     function remainingAt(time: string) {
-    const targetDateStr = activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr;
-    const [hourStr, minuteStr] = time.split(':');
+        const targetDateStr = activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr;
+        const activeDate = DateTime.fromFormat(`${targetDateStr} ${time}`, "yyyy-MM-dd HH:mm")
 
-    // JST を UTC に変換（-9時間）
-    const targetUTC = new Date(`${targetDateStr}T${time}:00`);
-    console.log('targetUTC:', targetUTC.toISOString());
+        // JST を UTC に変換（-9時間）
+        const targetUTC = activeDate
+        const used = receptions
+            .filter(r => r.alignment)
+            .filter(r => {
+                const rTime = DateTime.fromISO(r.time, {zone: "UTC"});
+                console.log(targetUTC.toFormat("HH:mm:ss"))
+                console.log(rTime.toFormat("HH:mm:ss"))
+                return rTime.hasSame(targetUTC, "minute")
+            })
+            .reduce((sum, r) => sum + ((r as any).number || 0), 0);
 
-    const used = receptions
-        .filter(r => r.alignment)
-        .filter(r => {
-            const rTime = new Date(r.time);
-            console.log('rTime UTC:', rTime.toString());
-            console.log('Target:', rTime.toString());
-            // UTC で時刻を比較
-            return (
-                rTime.getUTCFullYear() === targetUTC.getUTCFullYear() &&
-                rTime.getUTCMonth() === targetUTC.getUTCMonth() &&
-                rTime.getUTCDate() === targetUTC.getUTCDate() &&
-                rTime.getUTCHours() === targetUTC.getUTCHours() &&
-                rTime.getUTCMinutes() === targetUTC.getUTCMinutes()
-            );
-        })
-        .reduce((sum, r) => sum + ((r as any).number || 0), 0);
+        const remaining = Math.max(0, maxGroupSize - used);
+        console.log('remaining seats:', remaining);
+        return remaining;
+    }
 
-    const remaining = Math.max(0, maxGroupSize - used);
-    console.log('remaining seats:', remaining);
-    return remaining;
-}
 
-    
-    
-    
+
+
 
     if (loading) {
         return (

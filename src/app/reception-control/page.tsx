@@ -7,6 +7,7 @@ import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { IconTrash } from '@tabler/icons-react';
 import { useQRCode } from 'next-qrcode';
 import './ReceptionControlPage.css';
+import { DateTime } from "luxon";
 
 interface ReceptionData {
     id: number;
@@ -259,12 +260,7 @@ const ReceptionControlPage = () => {
                             >
                                 <td className="table-cell">{row.id}</td>
                                 <td className="table-cell">
-                                    {(() => {
-                                        const date = new Date(row.time);
-                                        const hours = date.getHours().toString().padStart(2, '0');
-                                        const minutes = date.getMinutes().toString().padStart(2, '0');
-                                        return `${hours}:${minutes}`;
-                                    })()}
+                                    {(() => DateTime.fromISO(row.time, {zone: "UTC"}).toFormat("HH:mm"))()}
                                 </td>
                                 <td className="table-cell">{row.number}</td>
                                 <td className="table-cell">

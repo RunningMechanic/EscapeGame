@@ -21,6 +21,7 @@
     "bcryptjs": "^3.0.2",
     "dotenv": "^16.5.0",
     "jsqr": "^1.4.0",
+    "luxon": "^3.7.2",
     "next": "^15.5.4",
     "next-auth": "^4.24.11",
     "next-qrcode": "^2.5.1",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/luxon": "^3.7.1",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.2.7",
