@@ -34,7 +34,7 @@ const EntryPage = () => {
                     <ThemeIcon size={100} radius="xl" color="blue" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
                         <IconUsers size={50} />
                     </ThemeIcon>
-                    <Title order={1} ta="center" c="dark" size="3.5rem">
+                    <Title order={1} ta="center" c="white" size="3.5rem">
                         脱出ゲーム
                     </Title>
                     <Text ta="center" c="dimmed" size="lg" maw={700}>
