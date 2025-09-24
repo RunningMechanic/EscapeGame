@@ -39,7 +39,20 @@ const StartStopPage = () => {
     const startStreamRef = useRef<MediaStream | null>(null);
     const startScanRafRef = useRef<number | null>(null);
     const startCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
+    const stopScan = () => {
+        setIsWaitingForScan(false);
+        if (startScanRafRef.current) {
+            cancelAnimationFrame(startScanRafRef.current);
+            startScanRafRef.current = null;
+        }
+        if (startVideoRef.current) {
+            startVideoRef.current.pause();
+            startVideoRef.current.srcObject = null;
+        }
+        startStreamRef.current?.getTracks().forEach((t) => t.stop());
+        startStreamRef.current = null;
+    };
+    
     /** ------------------ ゲーム開始 ------------------ **/
     const startGame = useCallback(
         async (participantId: number, meta?: PendingCandidate) => {
@@ -50,12 +63,12 @@ const StartStopPage = () => {
                     body: JSON.stringify({ participantId }),
                 });
                 if (!response.ok) throw new Error("startGame API failed");
-
+    
                 const result = await response.json();
-
+    
                 const baseStart = globalStartTime ?? new Date();
                 if (!globalStartTime) setGlobalStartTime(baseStart);
-
+    
                 setActiveSessions((prev) => [
                     ...prev,
                     {
@@ -68,7 +81,7 @@ const StartStopPage = () => {
                         token: meta?.token ?? "",
                     },
                 ]);
-
+    
                 if (meta) {
                     setParticipantMetaById((prev) => ({
                         ...prev,
@@ -79,17 +92,19 @@ const StartStopPage = () => {
                         },
                     }));
                 }
-
+    
                 setElapsedTime(0);
                 setScanStatus("started");
+    
+                // --- スキャン停止 ---
+                stopScan();
             } catch (error) {
                 console.error("ゲーム開始エラー:", error);
             }
         },
         [globalStartTime]
     );
-
-    /** ------------------ ゲーム停止 ------------------ **/
+/**     ------------------ ゲーム停止 ------------------ **/
     const stopGame = useCallback(
         async (targetSessionId: number) => {
             const target = activeSessions.find((s) => s.id === targetSessionId);
@@ -233,27 +248,43 @@ const StartStopPage = () => {
     /** ------------------ QRスキャン結果処理 ------------------ **/
     const handleScannedParticipantId = async (qrData: { id: number; token: string }) => {
         console.log("Scanned QR:", qrData);
-
+    
+        // スキャンを一旦停止
+        setIsWaitingForScan(false);
+        if (startScanRafRef.current) {
+            cancelAnimationFrame(startScanRafRef.current);
+            startScanRafRef.current = null;
+        }
+        if (startVideoRef.current) {
+            startVideoRef.current.pause();
+            startVideoRef.current.srcObject = null;
+        }
+        startStreamRef.current?.getTracks().forEach((t) => t.stop());
+        startStreamRef.current = null;
+    
         // すでにアクティブ or 待機中ならモーダル出さない
-        const alreadyActive = activeSessions.some(s => s.isActive && s.participantId === qrData.id && s.token === qrData.token);
-        const alreadyQueued = queuedParticipants.some(p => p.id === qrData.id && p.token === qrData.token);
+        const alreadyActive = activeSessions.some(
+            (s) => s.isActive && s.participantId === qrData.id && s.token === qrData.token
+        );
+        const alreadyQueued = queuedParticipants.some(
+            (p) => p.id === qrData.id && p.token === qrData.token
+        );
         if (alreadyActive || alreadyQueued) {
             setStartScanError(alreadyQueued ? "このIDは待機中です（同じtoken）" : "このIDはすでに計測中です");
             return;
         }
-
+    
         setPendingCandidate(null);
         setShowConfirmModal(false);
-
+    
         try {
-            const baseUrl = window.location.origin; // 例: https://localhost:3000
-
+            const baseUrl = window.location.origin;
+    
             const response = await fetch(`${baseUrl}/api/checkid?id=${qrData.id}&token=${qrData.token}`);
             if (!response.ok) throw new Error("check-id API failed");
-
+    
             const data = await response.json();
-
-            // 最新の候補だけセット
+    
             const candidate: PendingCandidate = {
                 id: data.id,
                 token: qrData.token,
@@ -261,15 +292,15 @@ const StartStopPage = () => {
                 start: data.start ?? "-",
                 name: data.name ?? "不明",
             };
-
+    
             setPendingCandidate(candidate);
             setShowConfirmModal(true);
-            setIsWaitingForScan(false);
         } catch (err) {
             console.error("check-id API エラー:", err);
             setStartScanError("参加者情報の取得に失敗しました");
         }
     };
+    
 
 
 
