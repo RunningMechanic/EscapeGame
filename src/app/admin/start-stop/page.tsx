@@ -30,7 +30,8 @@ import { StatusCard } from './StatusCard';
 import { ActiveSessionsList } from './ActiveSessionsList';
 import { ConfirmStartModal } from './ConfirmStartModal';
 import { formatTime, extractParticipantId } from './utils';
-import type { GameSession, ParticipantInfo, PendingCandidate, ParticipantMetaById, ScanStatus } from './types';
+import type { GameSession, ParticipantInfo, PendingCandidate, ParticipantMetaById, ScanStatus, Reception } from './types';
+import { DateTime } from "luxon";
 
 // 型は `./types` から取得
 
@@ -134,6 +135,50 @@ const StartStopPage = () => {
             console.error('ゲーム停止エラー:', error);
         }
     }, [currentSession, activeSessions, elapsedTime]);
+
+    // ロード
+    useEffect(() => {
+        (async () => {
+            const response: Response = await fetch('/api/getReceptionList', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            if (!response.ok) return
+            const { data }: { data: Reception[] } = await response.json()
+
+            for (const reception of data.filter(p => p.gameStarted)) {
+                const startTime = DateTime.fromISO(reception.gameStartTime!).setZone("Asia/Tokyo").toJSDate()
+                const dt = DateTime.fromISO(reception.time);
+                const candidate: PendingCandidate = { id: reception.id, number: reception.number ?? 0, start: dt.toFormat("HH:mm"), name: reception.name };
+                
+                setParticipantMetaById(prev => ({
+                    ...prev,
+                    [candidate.id]: {
+                        number: candidate.number,
+                        name: candidate.name,
+                        start: candidate.start,
+                    },
+                }));
+                setPendingCandidate(candidate)
+
+                const session: GameSession = {
+                    id: startTime.getTime(),
+                    startTime: startTime,
+                    timeTaken: null,
+                    endTime: null,
+                    isActive: true,
+                    participantId: reception.id,
+                }
+
+                setGlobalStartTime(session.startTime)
+                setActiveSessions(prev => ([
+                    ...prev, session
+                ]));
+                setElapsedTime(0);
+                setScanStatus('started');
+            }
+        })()
+    }, [])
 
     // タイマー（全グループ共通のスタート時刻で計測）
     useEffect(() => {

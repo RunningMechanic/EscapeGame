@@ -1,4 +1,4 @@
-export type ScanStatus = 'idle' | 'waiting' | 'started' | 'stopped';
+export type ScanStatus = "idle" | "waiting" | "started" | "stopped";
 
 export interface GameSession {
     id: number;
@@ -25,6 +25,15 @@ export interface PendingCandidate {
     name?: string;
 }
 
+export interface Reception {
+    id: number;
+    time: string;
+    alignment: boolean;
+    number: number;
+    timeTaken: number;
+    gameStarted: boolean;
+    gameStartTime?: string;
+    name: string;
+}
+
 export type ParticipantMetaById = Record<number, { number: number; name?: string | null; start: string }>;
-
-

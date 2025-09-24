@@ -31,17 +31,24 @@ export const StatusCard: React.FC<Props> = ({ scanStatus, elapsedTime, queuedCou
                                 <Badge
                                     size="xl"
                                     color={
-                                        scanStatus === 'idle' ? 'gray' :
+                                        scanStatus === 'idle' ? 'dark' :
                                             scanStatus === 'waiting' ? 'orange' :
                                                 scanStatus === 'started' ? 'green' : 'red'
                                     }
                                     variant="light"
                                     radius="md"
                                 >
-                                    {scanStatus === 'idle' && '待機中'}
-                                    {scanStatus === 'waiting' && 'スキャン待機中'}
-                                    {scanStatus === 'started' && 'ゲーム中'}
-                                    {scanStatus === 'stopped' && '終了'}
+                                    <Text style={{
+                                        color: 
+                                            scanStatus === 'idle' ? 'dark' :
+                                                scanStatus === 'waiting' ? 'orange' :
+                                                    scanStatus === 'started' ? 'green' : 'red'
+                                    }}>
+                                        {scanStatus === 'idle' && '待機中'}
+                                        {scanStatus === 'waiting' && '開始待ち'}
+                                        {scanStatus === 'started' && 'ゲーム中'}
+                                        {scanStatus === 'stopped' && '終了'}
+                                    </Text>
                                 </Badge>
                                 {queuedCount > 0 && (
                                     <Badge size="sm" color="yellow" variant="light">

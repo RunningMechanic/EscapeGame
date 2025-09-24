@@ -133,9 +133,7 @@ const ReceptionSchedulePage = () => {
         const used = receptions
             .filter(r => r.alignment)
             .filter(r => {
-                const rTime = DateTime.fromISO(r.time, {zone: "UTC"});
-                console.log(targetUTC.toFormat("HH:mm:ss"))
-                console.log(rTime.toFormat("HH:mm:ss"))
+                const rTime = DateTime.fromISO(r.time).setZone("Asia/Tokyo");
                 return rTime.hasSame(targetUTC, "minute")
             })
             .reduce((sum, r) => sum + ((r as any).number || 0), 0);

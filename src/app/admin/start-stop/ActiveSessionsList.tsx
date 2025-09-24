@@ -27,7 +27,7 @@ export const ActiveSessionsList: React.FC<Props> = ({ activeSessions, participan
                                         <IconUsers size={15} />
                                     </ThemeIcon>
                                     <Text fw={600} c="dark">参加者情報</Text>
-                                    <Badge variant="light">Session #{s.id}</Badge>
+                                    <Badge variant="light">Session #{s.participantId}</Badge>
                                 </Group>
                                 <Group gap="lg">
                                     <Text size="sm" c="dimmed">ID: <Text span fw={600}>{s.participantId}</Text></Text>
