@@ -13,9 +13,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // 認証判定
+    // 認証判定無効化
+    if (request.nextUrl.pathname === '/admin') { 
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) {
+    if (token) {
         const loginUrl = new URL('/admin-login', request.url);
         return NextResponse.redirect(loginUrl);
     }
