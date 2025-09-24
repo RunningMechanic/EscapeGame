@@ -105,7 +105,7 @@ const RankingPage = () => {
                     <ThemeIcon size={60} radius="xl" color="yellow" variant="gradient" gradient={{ from: 'yellow', to: 'orange' }}>
                         <IconTrophy size={30} />
                     </ThemeIcon>
-                    <Title order={1} ta="center" c="dark">
+                    <Title order={1} ta="center" c="white">
                         脱出ゲーム ランキング
                     </Title>
                     <Text c="dimmed" ta="center" size="lg">
