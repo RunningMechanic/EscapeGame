@@ -30,7 +30,6 @@ interface ReceptionData {
     time: string;
     room: number;
     alignment: boolean;
-    number: number;
 }
 
 const ReceptionSchedulePage = () => {
@@ -125,58 +124,34 @@ const ReceptionSchedulePage = () => {
     };
 
     function remainingAt(time: string) {
-        // 対象日付文字列
         const targetDateStr = activeDay === 1 ? eventDay1 || todayDateStr : eventDay2 || todayDateStr;
-        console.log('targetDateStr:', targetDateStr);
-      
-        // 時間を分割
         const [hourStr, minuteStr] = time.split(':');
-        const hour = Number(hourStr);
-        const minute = Number(minuteStr);
-        console.log('target time:', hour, minute);
-      
-        // JST の Date を作成
-        const target = new Date(targetDateStr);
-        target.setHours(hour, minute, 0, 0);
-        console.log('target Date (JST):', target);
-      
-        // alignment true の予約のみ
-        const alignedReceptions = receptions.filter(r => r.alignment);
-        console.log('alignedReceptions:', alignedReceptions);
-      
-        // 時間が一致する予約をフィルタ（JSTで比較）
-        const matchedReceptions = alignedReceptions.filter(r => {
-          const rTime = new Date(r.time);
-          const rJST = new Date(rTime.getTime() + 9 * 60 * 60 * 1000); // UTC → JST
-          console.log('rTime UTC:', rTime, 'rJST:', rJST);
-      
-          const match =
-            rJST.getFullYear() === target.getFullYear() &&
-            rJST.getMonth() === target.getMonth() &&
-            rJST.getDate() === target.getDate() &&
-            rJST.getHours() === target.getHours() &&
-            rJST.getMinutes() === target.getMinutes();
-      
-          console.log('match?', match);
-          return match;
-        });
-        console.log('matchedReceptions:', matchedReceptions);
-      
-        // 合計人数
-        const used = matchedReceptions.reduce((sum, r) => {
-          const num = r.number || 0;
-          console.log('adding number:', num, 'sum before:', sum);
-          return sum + num;
-        }, 0);
-        console.log('total used:', used);
-      
-        // 残席
+    
+        // JSTの文字列をUTCに変換
+        const jstDate = new Date(`${targetDateStr}T${time}:00+09:00`); // JSTとして解釈
+        const targetUTC = new Date(jstDate.getTime() - 9 * 60 * 60 * 1000); // UTCに変換
+        console.log('targetUTC:', targetUTC.toISOString());
+    
+        const used = receptions
+            .filter(r => r.alignment)
+            .filter(r => {
+                const rTime = new Date(r.time); // DBのUTC
+                // UTCで比較
+                return (
+                    rTime.getUTCFullYear() === targetUTC.getUTCFullYear() &&
+                    rTime.getUTCMonth() === targetUTC.getUTCMonth() &&
+                    rTime.getUTCDate() === targetUTC.getUTCDate() &&
+                    rTime.getUTCHours() === targetUTC.getUTCHours() &&
+                    rTime.getUTCMinutes() === targetUTC.getUTCMinutes()
+                );
+            })
+            .reduce((sum, r) => sum + ((r as any).number || 0), 0);
+    
         const remaining = Math.max(0, maxGroupSize - used);
         console.log('remaining seats:', remaining);
-      
         return remaining;
-      }
-      
+    }
+    
 
     
     
