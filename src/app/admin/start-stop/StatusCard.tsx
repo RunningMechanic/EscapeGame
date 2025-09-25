@@ -3,8 +3,8 @@
 import React from "react";
 import { Card, Stack, Group, ThemeIcon, Title, Grid, Paper, Text, Badge } from "@mantine/core";
 import { IconQrcode } from "@tabler/icons-react";
-import { formatTime } from "./utils";
 import type { ScanStatus } from "./types";
+import { formatTime } from "./utils";
 
 interface Props {
     scanStatus: ScanStatus;
@@ -22,7 +22,6 @@ export const StatusCard: React.FC<Props> = ({ scanStatus, elapsedTime, queuedCou
                     </ThemeIcon>
                     <Title order={2} c="dark">現在の状態</Title>
                 </Group>
-
                 <Grid>
                     <Grid.Col span={6}>
                         <Paper p="md" radius="md" withBorder style={{ background: '#f8f9fa' }}>
@@ -50,34 +49,19 @@ export const StatusCard: React.FC<Props> = ({ scanStatus, elapsedTime, queuedCou
                                         {scanStatus === 'stopped' && '終了'}
                                     </Text>
                                 </Badge>
-                                {queuedCount > 0 && (
-                                    <Badge size="sm" color="yellow" variant="light">
-                                        待機中 {queuedCount}
-                                    </Badge>
-                                )}
+                                {queuedCount > 0 && <Badge size="sm" color="yellow" variant="light">待機中 {queuedCount}</Badge>}
                             </Stack>
                         </Paper>
                     </Grid.Col>
                     <Grid.Col span={6}>
-                        <Paper
-                            p="md"
-                            radius="md"
-                            withBorder
-                            style={{
-                                background: elapsedTime >= 540 ? '#fff5f5' : '#f8f9fa',
-                                borderColor: elapsedTime >= 540 ? '#ff6b6b' : undefined
-                            }}
-                        >
+                        <Paper p="md" radius="md" withBorder style={{
+                            background: elapsedTime >= 540 ? '#fff5f5' : '#f8f9fa',
+                            borderColor: elapsedTime >= 540 ? '#ff6b6b' : undefined
+                        }}>
                             <Stack align="center" gap="sm">
                                 <Text size="sm" c="dimmed" fw={500}>経過時間</Text>
-                                <Text size="xl" fw={700} c={elapsedTime >= 540 ? "red" : "dark"}>
-                                    {formatTime(elapsedTime)}
-                                </Text>
-                                {elapsedTime >= 540 && (
-                                    <Badge size="sm" color="red" variant="light">
-                                        残り {formatTime(600 - elapsedTime)}
-                                    </Badge>
-                                )}
+                                <Text size="xl" fw={700} c={elapsedTime >= 540 ? "red" : "dark"}>{formatTime(elapsedTime)}</Text>
+                                {elapsedTime >= 540 && <Badge size="sm" color="red" variant="light">残り {formatTime(600 - elapsedTime)}</Badge>}
                             </Stack>
                         </Paper>
                     </Grid.Col>
@@ -88,5 +72,3 @@ export const StatusCard: React.FC<Props> = ({ scanStatus, elapsedTime, queuedCou
 };
 
 export default StatusCard;
-
-

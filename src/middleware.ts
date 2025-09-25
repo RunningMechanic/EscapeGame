@@ -14,9 +14,9 @@ export async function middleware(request: NextRequest) {
     }
 
     // 認証判定　無効
-    
+
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-    if (token) {
+    if (!token) {
         const loginUrl = new URL('/admin-login', request.url);
         return NextResponse.redirect(loginUrl);
     }

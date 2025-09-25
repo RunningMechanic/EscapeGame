@@ -4,15 +4,21 @@ export const formatTime = (seconds: number): string => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
-// URLやテキストに含まれる数字列からIDを推定
-export const extractParticipantId = (raw: string): number | null => {
-    const idParam = raw.match(/[?&#]id=(\d+)/i);
-    if (idParam && idParam[1]) return Number(idParam[1]);
-    const pathNum = raw.match(/\/(\d+)(?:\D|$)/);
-    if (pathNum && pathNum[1]) return Number(pathNum[1]);
-    const standalone = raw.match(/\b(\d{1,6})\b/);
-    if (standalone && standalone[1]) return Number(standalone[1]);
-    return null;
-};
+// QRコードの内容から id と token を取得
+export function extractParticipantFromQR(raw: string): { id: number; token: string } | null {
+    try {
+        // QRコードがURLの場合
+        const url = new URL(raw);
+        const idStr = url.searchParams.get("id");
+        const token = url.searchParams.get("token");
 
+        if (idStr && token) {
+            const id = parseInt(idStr, 10);
+            if (!isNaN(id)) return { id, token };
+        }
 
+        return null;
+    } catch {
+        return null;
+    }
+}
