@@ -5,4 +5,5 @@ export interface ReceptionData {
     checker: boolean;
     alignment: boolean;
     name?: string;
+    ended: boolean
 }

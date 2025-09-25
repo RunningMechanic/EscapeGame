@@ -12,7 +12,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         // トークンがある場合は検証、ない場合は管理画面からの削除とみなす
-        if (token && !validateToken(id.toString(), token)) {
+        if (token && !(await validateToken(id.toString(), token))) {
             return authErrorResponse('Invalid token');
         }
 
@@ -30,4 +30,4 @@ export async function DELETE(request: NextRequest) {
         console.error('Cancel error:', error);
         return errorResponse('Internal server error');
     }
-} 
+}

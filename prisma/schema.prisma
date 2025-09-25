@@ -17,6 +17,8 @@ model Reception {
   gameStartTime DateTime?
   name          String?
   difficulty    String?   @default("EASY")
+  ended         Boolean   @default(false)
+  cancelled     Boolean   @default(false)
 }
 
 model User {
