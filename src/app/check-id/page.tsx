@@ -326,12 +326,14 @@ const CheckIdPage = () => {
                         {error.includes('一度目の受付が終わらないと二度目の受付はできません') ? (
                             <>
                                 <Text c="red" size="lg" ta="center" fw={600}>
-                                    一度目の受付が終わらないと二度目の受付はできません\nURLを忘れた場合はI2受付まで。
+                                    一度目の受付が終わらないと二度目の受付はできません<br />
+                                    
                                 </Text>
                                 <Card shadow="md" p="lg" radius="lg" withBorder style={{ maxWidth: 400 }}>
                                     <Stack gap="md">
                                         <Text c="dimmed" size="sm" ta="center">
-                                            既存のIDからアクセスしてください
+                                            <strong>既に予約済みのID</strong><br />
+                                            (表示されていない場合はI2受付までお問い合わせください)
                                         </Text>
                                         <Button
                                             variant="light"
@@ -347,7 +349,7 @@ const CheckIdPage = () => {
                                             }}
                                             style={{ wordBreak: 'break-all' }}
                                         >
-                                            ID: {error.split('既存のID: ')[1]}
+                                            以前の予約ページへ移動
                                         </Button>
                                     </Stack>
                                 </Card>
