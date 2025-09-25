@@ -260,7 +260,7 @@ const ReceptionControlPage = () => {
                             >
                                 <td className="table-cell">{row.id}</td>
                                 <td className="table-cell">
-                                    {(() => DateTime.fromISO(row.time, {zone: "UTC"}).toFormat("HH:mm"))()}
+                                    {(() => DateTime.fromISO(row.time).setZone("Asia/Tokyo").toFormat("HH:mm"))()}
                                 </td>
                                 <td className="table-cell">{row.number}</td>
                                 <td className="table-cell">
