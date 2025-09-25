@@ -82,8 +82,12 @@ const CheckIdPage = () => {
                         if (existingResponse.ok) {
                             const existingData = await existingResponse.json();
                             console.log('既存のIDのデータ:', existingData.checker);
-                            // 既存のIDのcheckerがfalseの場合（来場未）
-                            if (existingData.checker === true) {
+                            // すでに終了済みの予約の場合
+                            if (existingData.ended === true) {
+                                localStorage.clear()
+                                existingId = null
+                                existingToken = null
+                            } else if (existingData.checker === true) {
                                 setError(`一度目の受付が終わらないと二度目の受付はできません。既存のID: ${existingId}`);
                                 setLoading(false);
                                 return;

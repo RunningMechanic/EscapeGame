@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from "react";
-import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge } from '@mantine/core';
-import { IconDeviceFloppy, IconRestore, IconQrcode } from '@tabler/icons-react';
+import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge, Stack } from '@mantine/core';
+import { IconDeviceFloppy, IconRestore, IconQrcode, IconX } from '@tabler/icons-react';
 import { RxReload } from "react-icons/rx";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
 import { IconTrash } from '@tabler/icons-react';
@@ -18,6 +18,7 @@ interface ReceptionData {
     gameStartTime?: string;
     gameStarted?: boolean;
     timeTaken?: number | null;
+    cancelled?: boolean
 }
 
 const ReceptionControlPage = () => {
@@ -183,7 +184,31 @@ const ReceptionControlPage = () => {
         }
     };
 
-
+    async function handleCancel(row: ReceptionData) {
+        try {
+            const response = await fetch('/api/updateReception', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: row.id, cancelled: true }),
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                alert('予約キャンセルに失敗しました: ' + (err.error || 'unknown'));
+            } else {
+                alert(`予約(ID: ${row.id})をキャンセルしました`)
+                setData((prev) => prev.map((r) => r.id === row.id ? { ...r, ...{cancelled: true} } : r));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('予約キャンセル中にエラーが発生しました');
+        } finally {
+            setSavingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(row.id);
+                return next;
+            });
+        }
+    }
 
     if (loading) {
         return (
@@ -258,7 +283,12 @@ const ReceptionControlPage = () => {
                                 key={row.id}
                                 className={`${row.alignment ? 'checked-row' : ''} ${dirtyIds.has(row.id) ? 'dirty-row' : ''}`.trim()}
                             >
-                                <td className="table-cell">{row.id}</td>
+                                <td className="table-cell">
+                                    <Group>
+                                        {row.id}
+                                        {row.cancelled && (<Badge color="red">キャンセル済み</Badge>)}
+                                    </Group>
+                                </td>
                                 <td className="table-cell">
                                     {(() => DateTime.fromISO(row.time).setZone("Asia/Tokyo").toFormat("HH:mm"))()}
                                 </td>
@@ -318,6 +348,11 @@ const ReceptionControlPage = () => {
                                     <Tooltip label="QR表示">
                                         <ActionIcon color="grape" size="md" onClick={() => { setQrTarget(row); setQrModalOpen(true); }} mr={4}>
                                             <IconQrcode size="1.25rem" />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                    <Tooltip label="キャンセル">
+                                        <ActionIcon color="yellow" size="md" onClick={() => { handleCancel(row) }} mr={4}>
+                                            <IconX size="1.25rem" />
                                         </ActionIcon>
                                     </Tooltip>
                                     <Tooltip label="削除">
