@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from "react";
-import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge, Stack } from '@mantine/core';
+import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge, Stack, Autocomplete, OptionsFilter, ComboboxItem, TagsInput } from '@mantine/core';
 import { IconDeviceFloppy, IconRestore, IconQrcode, IconX } from '@tabler/icons-react';
 import { RxReload } from "react-icons/rx";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
@@ -8,6 +8,7 @@ import { IconTrash } from '@tabler/icons-react';
 import { useQRCode } from 'next-qrcode';
 import './ReceptionControlPage.css';
 import { DateTime } from "luxon";
+import SearchBox from "./SearchBox";
 
 interface ReceptionData {
     id: number;
@@ -24,7 +25,6 @@ interface ReceptionData {
 const ReceptionControlPage = () => {
     const [data, setData] = useState<ReceptionData[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchText, setSearchText] = useState("");
     const [showUncheckedOnly, setShowUncheckedOnly] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState<ReceptionData | null>(null);
@@ -33,6 +33,9 @@ const ReceptionControlPage = () => {
     const { Canvas } = useQRCode();
     const [dirtyIds, setDirtyIds] = useState<Set<number>>(new Set());
     const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
+
+    const [searchText, setSearchText] = useState<string[]>([]);
+    const [filteredData, setFilteredData] = useState<ReceptionData[]>()
 
     const fetchData = async () => {
         setLoading(true);
@@ -48,9 +51,11 @@ const ReceptionControlPage = () => {
             // 新しいAPIレスポンス形式に対応
             if (result.success && result.data && Array.isArray(result.data)) {
                 setData(result.data);
+                setFilteredData(result.data)
             } else if (Array.isArray(result)) {
                 // 後方互換性のため、直接配列が返される場合も対応
                 setData(result);
+                setFilteredData(result)
             } else {
                 console.error('Unexpected API response format:', result);
                 setData([]);
@@ -77,12 +82,59 @@ const ReceptionControlPage = () => {
         return () => window.removeEventListener('beforeunload', handler);
     }, [dirtyIds]);
 
-    // データが配列であることを確認してからフィルタリング
-    const filteredData = Array.isArray(data) ? data.filter((row) =>
-        Object.values(row).some((value) =>
-            value?.toString().toLowerCase().includes(searchText.toLowerCase())
-        ) && (!showUncheckedOnly || !row.alignment)
-    ) : [];
+    function matchTime(iso: string, time: string, includeSecond: boolean = true) {
+        const a = DateTime.fromISO(iso).setZone("Asia/Tokyo")
+        const b = DateTime.fromFormat(time, "H:m")
+        return a.hour == b.hour && a.minute == b.minute && (
+            includeSecond || a.second == b.second
+        )
+    }
+
+    function isMatched(reception: ReceptionData, filters: Map<string, string>, filter: string): boolean {
+        
+        let required = 0
+        let include = 0
+        // console.log(filters)
+        for (const key of Array.from(filters.keys())) {
+            const param = filters.get(key)!
+            switch (key) {
+                case "id":
+                    if (!Number.isNaN(param) && reception.id == Number.parseInt(param)) required++
+                    break;
+                case "time":
+                    if (matchTime(reception.time, param)) required++
+                    break;
+                case "started":
+                    if (reception.gameStarted) required++
+                    break;
+                case "game":
+                    if (reception.gameStartTime && matchTime(reception.gameStartTime, param)) required++
+                    break;
+                case "person":
+                    if (!Number.isNaN(param) && reception.number == Number.parseInt(param)) required++
+                    break
+                default:
+                    if (reception.id.toString() == filter) include++
+                    if (reception.name?.startsWith(filter)) include++
+                    if (DateTime.fromFormat(filter, "H:m").isValid) {
+                        if (reception.gameStartTime && matchTime(reception.gameStartTime, filter)) include++
+                        if (matchTime(reception.time, filter)) include++
+                    }
+            }
+        }
+        // console.log("in:", filters, ", in2:", filter)
+        // console.log("reception:", reception)
+        // console.log("id: %d, req: %d, inc: %d", reception.id, required, include)
+        return (filters.size > 0 && filters.size <= required) || include >= 1
+    }
+
+    const searchUpdate = (values: Map<string, string>, raw: string) => {
+        if (values.size == 0 && raw == "") {
+            setFilteredData(data)
+            return
+        }
+        setFilteredData(data.filter(p => isMatched(p, values, raw)))
+    }
 
     const handleSave = async (row: ReceptionData) => {
         try {
@@ -229,12 +281,7 @@ const ReceptionControlPage = () => {
                 </Text>
             </div>
             <div className="toolbar">
-                <TextInput
-                    placeholder="Search..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                    className="search-input"
-                />
+                <SearchBox onUpdate={searchUpdate} />
                 <Tooltip label={showUncheckedOnly ? "全員表示" : "未チェックのみ表示"}>
                     <ActionIcon
                         color={showUncheckedOnly ? "orange" : "gray"}
