@@ -39,7 +39,7 @@ const RankingPage = () => {
     const [difficulty, setDifficulty] = useState<string>("EASY")
 
     useEffect(() => {
-        fetchRankings();
+        updateDifficulty("EASY");
     }, []);
 
     const fetchRankings = async () => {

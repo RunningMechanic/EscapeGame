@@ -55,6 +55,8 @@ const StartStopPage = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [globalStartTime, setGlobalStartTime] = useState<Date | null>(null);
 
+    const clearSERef = useRef<HTMLAudioElement | null>(null)
+
     const [addParticipantScan, setAddParticipantScan] = useState(false);
     const [addParticipantError, setAddParticipantError] = useState<string | null>(null);
     
@@ -195,6 +197,7 @@ const StartStopPage = () => {
                 ]));
                 setElapsedTime(0);
                 setScanStatus('started');
+                
                 console.log(queuedParticipants)
             }
         })()
@@ -314,6 +317,10 @@ const StartStopPage = () => {
             await stopGame(session.id)
         }
         setScanStatus("stopped");
+        await clearSERef.current?.play()
+        setTimeout(() => {
+            if (clearSERef.current) clearSERef.current.currentTime = 0
+        }, 3000)
     }
 
     function resetData() {
@@ -357,7 +364,7 @@ const StartStopPage = () => {
                     <Title order={1}>ゲーム管理</Title>
                     <Text>QRコードをスキャンしてゲームを開始・停止</Text>
                 </Stack>
-
+                <audio src="/clear.mp3" ref={clearSERef}></audio>
 
                 <Card shadow="xl" p="xl" radius="lg" withBorder style={{ width: '100%', maxWidth: 800 }}>
                     <Stack gap="lg">
