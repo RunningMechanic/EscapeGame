@@ -11,7 +11,7 @@ const users = Array.from({ length: 40 }, (_, i) => ({
 async function main() {
   console.log('seed start');
   for (const user of users) {
-    const hashedPassword = await bcrypt.hash(user.password, 10);
+    const hashedPassword = await bcrypt.hash(user.password, await bcrypt.genSalt(10));
     await prisma.user.upsert({
       where: { email: user.email },
       update: {}, // 既存の場合は何も変更しない

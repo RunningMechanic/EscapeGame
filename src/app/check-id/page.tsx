@@ -165,8 +165,13 @@ const CheckIdPage = () => {
                 // ゲーム開始の準備完了を通知（初回チェックイン時のみ）
                 if (checkInStatus === 'pending') {
                     setTimeout(() => {
-                        alert('チェックイン完了！管理画面でゲーム開始の準備ができました。');
+                        alert('チェックイン完了！ゲーム開始の準備ができました。');
+                        // ページをリロード
+                        window.location.reload();
                     }, 1000);
+                } else {
+                    // すぐリロードする場合
+                    window.location.reload();
                 }
             } else {
                 const errorData = await checkInResponse.json();

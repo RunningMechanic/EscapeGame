@@ -13,6 +13,9 @@ import {
     ThemeIcon,
     Alert,
     Grid,
+    SegmentedControl,
+    Divider,
+    Center,
 } from '@mantine/core';
 import {
     IconPlayerPlay,
@@ -22,16 +25,23 @@ import {
     IconUsers,
     IconArrowLeft,
     IconCheck,
+    IconPlayerStop,
+    IconPlayerStopFilled,
+    IconPlus,
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { StatusCard } from './StatusCard';
 import { ActiveSessionsList } from './ActiveSessionsList';
 import { ConfirmStartModal } from './ConfirmStartModal';
-import { formatTime, extractParticipantId } from './utils';
-import type { GameSession, ParticipantInfo, PendingCandidate, ParticipantMetaById, ScanStatus, Reception } from './types';
+import { extractParticipantFromQR } from './utils';
+import type { GameSession, PendingCandidate, ParticipantMetaById, ScanStatus, Reception } from './types';
 import { DateTime } from "luxon";
+import QRScanner from "./QRScanner";
+import { parse } from "path";
 
 // 型は `./types` から取得
+
+type Difficulty = string | "EASY" | "HARD"
 
 const StartStopPage = () => {
     const router = useRouter();
@@ -40,31 +50,19 @@ const StartStopPage = () => {
     const [queuedParticipants, setQueuedParticipants] = useState<PendingCandidate[]>([]);
     const [pendingCandidate, setPendingCandidate] = useState<PendingCandidate | null>(null);
     const [participantMetaById, setParticipantMetaById] = useState<ParticipantMetaById>({});
-    const [isWaitingForScan, setIsWaitingForScan] = useState(false);
     const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
     const [elapsedTime, setElapsedTime] = useState(0);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [startScanError, setStartScanError] = useState<string | null>(null);
     const [globalStartTime, setGlobalStartTime] = useState<Date | null>(null);
 
-    const startVideoRef = useRef<HTMLVideoElement | null>(null);
-    const startStreamRef = useRef<MediaStream | null>(null);
-    const startScanRafRef = useRef<number | null>(null);
-    const startCanvasRef = useRef<HTMLCanvasElement | null>(null);
-    const stopScan = () => {
-        setIsWaitingForScan(false);
-        if (startScanRafRef.current) {
-            cancelAnimationFrame(startScanRafRef.current);
-            startScanRafRef.current = null;
-        }
-        if (startVideoRef.current) {
-            startVideoRef.current.pause();
-            startVideoRef.current.srcObject = null;
-        }
-        startStreamRef.current?.getTracks().forEach((t) => t.stop());
-        startStreamRef.current = null;
-    };
+    const [addParticipantScan, setAddParticipantScan] = useState(false);
+    const [addParticipantError, setAddParticipantError] = useState<string | null>(null);
     
+    const [stopGameScan, setStopGameScan] = useState(false);
+    const [stopGameError, setStopGameError] = useState<string | null>(null);
+    
+    const [difficulty, setDifficulty] = useState<Difficulty>("EASY");
+
     /** ------------------ ゲーム開始 ------------------ **/
     const startGame = useCallback(
         async (participantId: number, meta?: PendingCandidate) => {
@@ -109,14 +107,14 @@ const StartStopPage = () => {
                 setScanStatus("started");
     
                 // --- スキャン停止 ---
-                stopScan();
+                stopAddParticipantScan();
             } catch (error) {
                 console.error("ゲーム開始エラー:", error);
             }
         },
         [globalStartTime]
     );
-/**     ------------------ ゲーム停止 ------------------ **/
+    /** ------------------ ゲーム停止 ------------------ **/
     const stopGame = useCallback(
         async (targetSessionId: number) => {
             const target = activeSessions.find((s) => s.id === targetSessionId);
@@ -181,7 +179,6 @@ const StartStopPage = () => {
                         start: candidate.start,
                     },
                 }));
-                setPendingCandidate(candidate)
 
                 const session: GameSession = {
                     id: startTime.getTime(),
@@ -198,6 +195,7 @@ const StartStopPage = () => {
                 ]));
                 setElapsedTime(0);
                 setScanStatus('started');
+                console.log(queuedParticipants)
             }
         })()
     }, [])
@@ -215,108 +213,42 @@ const StartStopPage = () => {
     }, [globalStartTime, activeSessions]);
 
     /** ------------------ QRスキャン開始 ------------------ **/
-    const startWaitingForScan = () => {
-        setIsWaitingForScan(true);
-        setScanStatus("waiting");
+    const startAddParticipantScan = () => {
+        setAddParticipantScan(true);
+    };
+    const stopAddParticipantScan = () => {
+        setAddParticipantScan(false);
     };
 
-    useEffect(() => {
-        if (!isWaitingForScan) return;
-        let cancelled = false;
+    function startStopGameScan() {
+        if (stopGameScan) setStopGameScan(false)
+        setStopGameScan(true)
+    }
 
-        const startScanner = async () => {
-            try {
-                setStartScanError(null);
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                startStreamRef.current = stream;
-                if (startVideoRef.current) {
-                    startVideoRef.current.srcObject = stream;
-                    await startVideoRef.current.play();
-                }
+    async function handleAddParticipantQRCodeScanned(data: any) {
+        const parsedData = extractParticipantFromQR(data);
+        if (!parsedData) return
+        if (parsedData.id != null) {
+            stopAddParticipantScan()
+            if (queuedParticipants.some(p => p.id == parsedData.id)) return
+            await handleAddParticipant(parsedData);
+        }
+    }
 
-                const BarcodeDetectorCtor: any = (globalThis as any).BarcodeDetector;
-                if (BarcodeDetectorCtor) {
-                    const detector = new BarcodeDetectorCtor({ formats: ["qr_code"] });
-                    const detectOnce = async () => {
-                        if (cancelled) return;
-                        if (startVideoRef.current && !startVideoRef.current.paused && !startVideoRef.current.ended) {
-                            const barcodes = await detector.detect(startVideoRef.current);
-                            if (barcodes?.length) {
-                                const raw = (barcodes[0].rawValue || "").toString();
-                                const data = extractParticipantFromQR(raw);
-                                if (data?.id != null) {
-                                    console.log("QR検出 (BarcodeDetector):", data);
-                                    handleScannedParticipantId(data);
-                                }
-                            }
-                        }
-                        startScanRafRef.current = requestAnimationFrame(detectOnce);
-                    };
-                    startScanRafRef.current = requestAnimationFrame(detectOnce);
-                } else {
-                    if (!startCanvasRef.current) startCanvasRef.current = document.createElement("canvas");
-                    const detectOnce = () => {
-                        if (cancelled) return;
-                        const video = startVideoRef.current;
-                        const canvas = startCanvasRef.current;
-                        if (video && canvas && video.videoWidth && video.videoHeight) {
-                            if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
-                            if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
-                            const ctx = canvas.getContext("2d");
-                            if (ctx) {
-                                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                                const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-                                if (code?.data) {
-                                    const data = extractParticipantFromQR(code.data);
-                                    if (data?.id != null) {
-                                        console.log("QR検出 (jsQR):", data);
-                                        handleScannedParticipantId(data);
-                                    }
-                                }
-                            }
-                        }
-                        startScanRafRef.current = requestAnimationFrame(detectOnce);
-                    };
-                    startScanRafRef.current = requestAnimationFrame(detectOnce);
-                }
-            } catch (e) {
-                console.error(e);
-                setStartScanError("カメラにアクセスできません。");
-            }
-        };
-        startScanner();
+    async function handleStopGameScanned(data: any) {
+        const parsedData = data.toString();
+        if (parsedData == "clear") {
+            setStopGameScan(false)
+            await handleStopGameScan();
+        }
+    }
 
-        return () => {
-            cancelled = true;
-            if (startScanRafRef.current) cancelAnimationFrame(startScanRafRef.current);
-            if (startVideoRef.current) {
-                startVideoRef.current.pause();
-                startVideoRef.current.srcObject = null;
-            }
-            startStreamRef.current?.getTracks().forEach((t) => t.stop());
-            startStreamRef.current = null;
-        };
-    }, [isWaitingForScan]);
+    async function handleStopGameScan() {
+        await stopAllGroups()
+    }
 
     /** ------------------ QRスキャン結果処理 ------------------ **/
-    const lastScannedTokenRef = useRef<string | null>(null);
-    /** ------------------ QRスキャン結果処理 ------------------ **/
-    const handleScannedParticipantId = async (qrData: { id: number; token: string }) => {
-        console.log("Scanned QR:", qrData);
-    
-        // スキャンを一旦停止
-        setIsWaitingForScan(false);
-        if (startScanRafRef.current) {
-            cancelAnimationFrame(startScanRafRef.current);
-            startScanRafRef.current = null;
-        }
-        if (startVideoRef.current) {
-            startVideoRef.current.pause();
-            startVideoRef.current.srcObject = null;
-        }
-        startStreamRef.current?.getTracks().forEach((t) => t.stop());
-        startStreamRef.current = null;
+    const handleAddParticipant = async (qrData: { id: number; token: string }) => {
     
         // すでにアクティブ or 待機中ならモーダル出さない
         const alreadyActive = activeSessions.some(
@@ -326,7 +258,7 @@ const StartStopPage = () => {
             (p) => p.id === qrData.id && p.token === qrData.token
         );
         if (alreadyActive || alreadyQueued) {
-            setStartScanError(alreadyQueued ? "このIDは待機中です（同じtoken）" : "このIDはすでに計測中です");
+            setAddParticipantError(alreadyQueued ? "このIDは待機中です（同じtoken）" : "このIDはすでに計測中です");
             return;
         }
     
@@ -334,9 +266,8 @@ const StartStopPage = () => {
         setShowConfirmModal(false);
     
         try {
-            const baseUrl = window.location.origin;
     
-            const response = await fetch(`${baseUrl}/api/checkid?id=${qrData.id}&token=${qrData.token}`);
+            const response = await fetch(`/api/checkid?id=${qrData.id}&token=${qrData.token}`);
             if (!response.ok) throw new Error("check-id API failed");
     
             const data = await response.json();
@@ -351,16 +282,12 @@ const StartStopPage = () => {
     
             setPendingCandidate(candidate);
             setShowConfirmModal(true);
+            updateDifficulty(difficulty)
         } catch (err) {
             console.error("check-id API エラー:", err);
-            setStartScanError("参加者情報の取得に失敗しました");
+            setAddParticipantError("参加者情報の取得に失敗しました");
         }
     };
-    
-
-
-
-
 
     /** ------------------ 確認モーダル確定 ------------------ **/
     const confirmStart = () => {
@@ -368,18 +295,57 @@ const StartStopPage = () => {
         setShowConfirmModal(false);
         setQueuedParticipants(prev => prev.some(p => p.id === pendingCandidate.id && p.token === pendingCandidate.token) ? prev : [...prev, pendingCandidate]);
         setPendingCandidate(null);
-        setIsWaitingForScan(true);
+        setAddParticipantScan(true);
         setScanStatus("waiting");
     };
 
     /** ------------------ 待機中一括開始 ------------------ **/
     const startQueuedGroups = async () => {
+        stopAddParticipantScan()
         for (const p of queuedParticipants) {
             await startGame(p.id, p);
         }
         setQueuedParticipants([]);
         setScanStatus("started");
     };
+
+    const stopAllGroups = async () => {
+        for (const session of activeSessions) {
+            await stopGame(session.id)
+        }
+        setScanStatus("stopped");
+    }
+
+    function resetData() {
+        setPendingCandidate(null);
+        setElapsedTime(0)
+        setQueuedParticipants([]);
+        setActiveSessions([]);
+        setGlobalStartTime(null)
+        setTimeout(() => {
+            setScanStatus("idle");
+        }, 1000)
+    }
+
+    async function updateDifficulty(data: string) {
+        console.log(data)
+        setDifficulty(data)
+        for (const participant of queuedParticipants) {
+            const response = await fetch("/api/updateDifficulty", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "id": participant.id,
+                    "difficulty": difficulty
+                })
+            })
+            if (!response.ok) throw new Error(`難易度の変更に失敗しました。HTTP: ${response.status}`);
+            const { success }: { success: boolean } = await response.json()
+            if (!success) throw new Error(`難易度の変更に失敗しました。Status: ${success}`);
+        }
+    }
 
     return (
         <Container size="lg" py="xl">
@@ -392,28 +358,60 @@ const StartStopPage = () => {
                     <Text>QRコードをスキャンしてゲームを開始・停止</Text>
                 </Stack>
 
-                <StatusCard scanStatus={scanStatus} elapsedTime={elapsedTime} queuedCount={queuedParticipants.length} />
+
+                <Card shadow="xl" p="xl" radius="lg" withBorder style={{ width: '100%', maxWidth: 800 }}>
+                    <Stack gap="lg">
+                        <StatusCard scanStatus={scanStatus} elapsedTime={elapsedTime} queuedCount={queuedParticipants.length} />
+                        <Divider></Divider>
+                        <Stack justify="center" align="stretch">
+                            <Center>難易度選択</Center>
+                            <SegmentedControl disabled={scanStatus == "started" || scanStatus == "stopped"} value={difficulty} onChange={updateDifficulty} data={["EASY", "HARD"]}></SegmentedControl>
+                        </Stack>
+                    </Stack>
+                </Card>
+                
 
                 <ActiveSessionsList activeSessions={activeSessions} participantMetaById={participantMetaById} onStop={stopGame} />
-
+            
                 <Card shadow="md" p="xl" radius="lg" withBorder style={{ width: "100%", maxWidth: 600 }}>
                     <Stack gap="lg">
-                        <Button size="xl" color="green" leftSection={<IconQrcode size={24} />} onClick={startWaitingForScan}>
-                            新しいグループを追加（QRスキャン）
-                        </Button>
 
-                        {scanStatus === "waiting" && (
-                            <Stack align="center">
-                                <Alert title="スキャン待機中" color="orange" variant="light">QRコードをスキャンしてください</Alert>
-                                {startScanError && <Alert color="red" variant="light" title="エラー">{startScanError}</Alert>}
-                                <video ref={startVideoRef} style={{ width: "100%", maxHeight: 280, background: "#000", borderRadius: 8 }} muted playsInline />
-                            </Stack>
+                        {(scanStatus === "waiting" || scanStatus == "idle") && (
+                            <>
+                                <Button size="xl" color="green" leftSection={<IconQrcode size={24} />} onClick={startAddParticipantScan}>
+                                    新しいグループを追加（QRスキャン）
+                                </Button>
+                                <QRScanner enabled={addParticipantScan} onScanned={handleAddParticipantQRCodeScanned} error={addParticipantError}></QRScanner>
+                            </>
                         )}
 
+                        {scanStatus === "started" && (
+                            <>
+                                <Button size="xl" color="green" leftSection={<IconQrcode size={24} />} onClick={startStopGameScan}>
+                                    クリア（QRスキャン）
+                                </Button>
+                                <QRScanner enabled={stopGameScan} onScanned={handleStopGameScanned} error={stopGameError}></QRScanner>
+                            </>
+                        )}
+
+                        
+
                         <Group justify="center">
-                            <Button size="md" color="blue" leftSection={<IconPlayerPlay size={18} />} onClick={startQueuedGroups} disabled={queuedParticipants.length === 0}>
-                                ゲーム開始（待機中 {queuedParticipants.length}）
-                            </Button>
+                            {(scanStatus === "waiting" || scanStatus == "idle") && (
+                                <Button size="md" color="blue" leftSection={<IconPlayerPlay size={18} />} onClick={startQueuedGroups} disabled={queuedParticipants.length === 0}>
+                                    ゲーム開始（待機中 {queuedParticipants.length}）
+                                </Button>
+                            )}
+                            {scanStatus == "started" && (
+                                <Button size="md" color="blue" leftSection={<IconPlayerStopFilled size={18} />} onClick={stopAllGroups}>
+                                    ゲーム停止
+                                </Button>
+                            )}
+                            {scanStatus == "stopped" && (
+                                <Button size="md" color="green" leftSection={<IconPlus size={18} />} onClick={resetData}>
+                                    次のグループを開始
+                                </Button>
+                            )}
                         </Group>
                     </Stack>
                 </Card>
@@ -422,7 +420,7 @@ const StartStopPage = () => {
                     opened={showConfirmModal}
                     pendingCandidate={pendingCandidate}
                     onConfirm={confirmStart}
-                    onCancel={() => { setShowConfirmModal(false); setPendingCandidate(null); setIsWaitingForScan(true); setScanStatus("waiting"); }}
+                    onCancel={() => { setShowConfirmModal(false); setPendingCandidate(null); setAddParticipantScan(true); setScanStatus("waiting"); }}
                 />
 
                 <Button variant="light" color="blue" leftSection={<IconArrowLeft size={16} />} onClick={() => router.push("/admin")} size="lg">

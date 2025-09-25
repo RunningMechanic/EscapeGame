@@ -14,6 +14,7 @@ import {
     ThemeIcon,
     Card,
     Grid,
+    SegmentedControl,
 } from '@mantine/core';
 import {
     IconTrophy,
@@ -35,6 +36,7 @@ interface RankingData {
 const RankingPage = () => {
     const [rankings, setRankings] = useState<RankingData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [difficulty, setDifficulty] = useState<string>("EASY")
 
     useEffect(() => {
         fetchRankings();
@@ -42,7 +44,7 @@ const RankingPage = () => {
 
     const fetchRankings = async () => {
         try {
-            const response = await fetch('/api/ranking');
+            const response = await fetch(`/api/ranking?difficulty=${difficulty}`);
             const data = await response.json();
             setRankings(data.rankings || []);
         } catch (error) {
@@ -97,6 +99,12 @@ const RankingPage = () => {
         );
     }
 
+    const updateDifficulty = async (data: string) => {
+        setDifficulty(data)
+        setLoading(true)
+        await fetchRankings()
+    }
+
     return (
         <Container size="md" py="xl">
             <Stack align="center" gap="xl">
@@ -111,6 +119,7 @@ const RankingPage = () => {
                     <Text c="dimmed" ta="center" size="lg">
                         最速脱出タイム TOP 5
                     </Text>
+                    <SegmentedControl fullWidth data={["EASY", "HARD"]} value={difficulty} onChange={updateDifficulty}></SegmentedControl>
                 </Stack>
 
                 {/* ランキング一覧 */}

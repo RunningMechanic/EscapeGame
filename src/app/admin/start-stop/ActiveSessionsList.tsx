@@ -12,12 +12,9 @@ interface Props {
 }
 
 export const ActiveSessionsList: React.FC<Props> = ({ activeSessions, participantMetaById, onStop }) => {
-    const visible = activeSessions.filter((s) => s.isActive);
-    if (visible.length === 0) return null;
-
     return (
         <Grid>
-            {visible.map((s) => {
+            {activeSessions.map((s) => {
                 if (s.participantId == null) return null; // nullを除外
 
                 const metas = participantMetaById[s.participantId] ? [participantMetaById[s.participantId]] : [];
@@ -25,14 +22,17 @@ export const ActiveSessionsList: React.FC<Props> = ({ activeSessions, participan
 
                 return (
                     <Grid.Col span={12} key={`${s.participantId}-${s.token ?? s.id}`}>
-                        <Paper p="md" radius="md" withBorder style={{ background: "#e8f5e8" }}>
+                        <Paper p="md" radius="md" withBorder style={{ background: (s.isActive ? "#e8f5e8" : "#f5e8e8") }}>
                             <Stack gap="sm">
                                 <Group gap="sm">
-                                    <ThemeIcon size={30} radius="xl" color="green" variant="light">
+                                    <ThemeIcon size={30} radius="xl" color={s.isActive ? "green" : "red"} variant="light">
                                         <IconUsers size={15} />
                                     </ThemeIcon>
                                     <Text fw={600} c="dark">参加者情報</Text>
                                     <Badge variant="light">Session #{s.participantId}</Badge>
+                                    {!s.isActive && (
+                                    <Badge variant="light" color="red">終了済み</Badge>
+                                    )}
                                 </Group>
 
                                 <Group gap="lg">
@@ -42,9 +42,11 @@ export const ActiveSessionsList: React.FC<Props> = ({ activeSessions, participan
                                     <Text size="sm" c="dimmed">受付時刻: <Text span fw={600}>{meta?.start ?? "-"}</Text></Text>
                                 </Group>
 
-                                <Button size="xs" color="red" variant="light" onClick={() => onStop(s.id)}>
-                                    強制終了
-                                </Button>
+                                {s.isActive && (
+                                    <Button size="xs" color="red" variant="light" onClick={() => onStop(s.id)}>
+                                        強制終了
+                                    </Button>
+                                )}
                             </Stack>
                         </Paper>
                     </Grid.Col>
