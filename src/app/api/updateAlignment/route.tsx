@@ -1,5 +1,6 @@
 import prisma from '@/lib/db';
 import { validationErrorResponse, errorResponse, successResponse } from '@/utils/apiUtils';
+import { NextResponse } from 'next/server';
 
 // GET メソッドでIDを指定してalignmentをtrueに更新
 export async function GET(req: Request) {
@@ -16,8 +17,17 @@ export async function GET(req: Request) {
     }
 
     try {
+        const before = await prisma.reception.findFirst({
+            where: { id: Number.parseInt(id) }
+        })
+        if (before?.alignment && before.name == name) {
+            return NextResponse.json({
+                success: true,
+            }, {status: 202})
+        }
+
         const updated = await prisma.reception.update({
-            where: { id: Number(id) },
+            where: { id: Number.parseInt(id) },
             data: {
                 alignment: true,
                 name: name

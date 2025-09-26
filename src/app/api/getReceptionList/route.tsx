@@ -6,7 +6,6 @@ export async function GET() {
     try {
         // alignment = true のデータだけ取得
         const receptions = await prisma.reception.findMany({
-            where: { alignment: true },
             orderBy: [{ time: 'asc' }],
         });
 

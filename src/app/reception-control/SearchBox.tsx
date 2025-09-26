@@ -1,140 +1,189 @@
-import { Autocomplete, ComboboxItem, ComboboxParsedItem, ComboboxProps, Flex, Grid, Group, InputBase, OptionsFilter, Pill, PillGroup } from "@mantine/core";
+import { Autocomplete, AutocompleteProps, Box, Button, Combobox, ComboboxItem, Divider, Flex, Group, Input, InputBase, OptionsFilter, Pill, PillGroup, Space, Text, useCombobox } from "@mantine/core";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
-import { Reception } from "@prisma/client";
+import { ReceptionData, searchKeys, SearchParameter } from "./search";
 
-
-interface ReceptionData {
-    id: number;
-    time: string;
-    number: number;
-    name?: string;
-    alignment: boolean;
-    gameStartTime?: string;
-    gameStarted?: boolean;
-    timeTaken?: number | null;
-    cancelled?: boolean
-}
-
-interface SearchKey {
-    name: string,
-    isBoolean: boolean,
-    type: string
-}
 
 interface Props {
-    onUpdate: (values: Map<string, string>, raw: string) => void
+    onUpdate: (values: SearchParameter[], raw: string) => void,
+    receptions: ReceptionData[]
 }
 
-const keys: SearchKey[] = [
-    {name: "id", isBoolean: false, type: "number"},
-    {name: "time", isBoolean: false, type: "time"},
-    {name: "gameStart", isBoolean: false, type: "time"},
-    {name: "started", isBoolean: true, type: "boolean"},
-    {name: "person", isBoolean: false, type: "number"}
-]
-
-export default (({ onUpdate }) => {
-    const [search, setSearch] = useState<Map<string, string>>(new Map())
+export default (({ onUpdate, receptions }) => {
+    const autocompleteBox = useCombobox()
+    const [search, setSearch] = useState<SearchParameter[]>([])
     const [autocomplete, setAutoComplete] = useState<string>("")
     const [autocompleteError, setAutoCompleteError] = useState<string | null>(null)
+    const [suggestions, setSuggestions] = useState<string[]>([])
 
-
-    function validateAutocomplete(input: string): boolean {
-        if (input.includes(":")) {
-            const arr = input.split(":")
-            const key = keys.find(p => p.name == arr[0])
-            if (arr.length >= 2 && key) {
-                const value = arr.slice(1).join(":").trim()
-                if (key.type == "boolean" && value == "") return true
-                if (value == "") return false
-                switch (key.type) {
-                    case "number":
-                        if (!Number.isNaN(value)) return true
-                        break
-                    case "time":
-                        if (DateTime.fromFormat(value, "H:m").isValid) return true
-                        break
-                }
-                return false
-            }
+    function validateValue(type: string, value: string): boolean {
+        switch (type) {
+            case "boolean":
+                return value == ""
+            case "number":
+                return /^\d+$/.test(value)
+            case "time":
+                return DateTime.fromFormat(value, "H:m").isValid
         }
+        return false
+    }
+
+    function cutInvertPrefix(d: string): string {
+        if (d == "!") return d
+        return d.startsWith("!") ? d.substring(1) : d
+    }
+
+    function parseAutocomplete(data: string, cb?: (value: SearchParameter) => void): boolean {
+        const args = data.split(":")
+
+        const inverted = args[0].startsWith("!")
+        const keyName = cutInvertPrefix(args[0])
+        const value = args.slice(1).join(":")
+        const key = searchKeys.find(p => p.name == keyName)
+        if (!keyName || !key) return false
+        if (!validateValue(key.type, value)) return false
+        
+        if (cb) cb({ key: keyName, value: value || "", inverted })
         return true
     }
 
     useEffect(() => {
         setAutoCompleteError(null)
-        if (keys.map(p => p.name).includes(autocomplete) && keys.find(p => p.name == autocomplete)?.isBoolean && !autocomplete.includes(":")) {
-            addParameter(autocomplete)
+        if (parseAutocomplete(autocomplete.trimEnd())) {
+            if (autocomplete.endsWith(" ")) {
+                addParameter(autocomplete.trimEnd())
+            }
+        } else {
+            if (autocomplete != "") setAutoCompleteError("エラー: 無効な検索フィルタです")
         }
-        if (autocomplete.endsWith(" ") && validateAutocomplete(autocomplete)) {
-            addParameter(autocomplete.trimEnd())
-        }
-        const addedMap = new Map(search)
-        if (autocomplete.split(":").length >= 2) {
-            addedMap.set(autocomplete.split(":")[0], autocomplete.split(":").slice(1).join(":"))
-        }
-        onUpdate(addedMap, autocomplete)
+        const addedMap = Array.from(search)
+        parseAutocomplete(autocomplete, addedMap.push.bind(addedMap)) ? onUpdate(addedMap, "") : onUpdate(search, "")
+        setSuggestions(createSuggestions(autocomplete))
     }, [autocomplete])
 
     function addParameter(data: string) {
-        if (!validateAutocomplete(data)) {
+        if (!parseAutocomplete(data)) {
             setAutoCompleteError("エラー: 無効な検索フィルタです")
             return
         }
-        const [key, ...param] = data.split(":")
-        search.set(key, param.join(":") || "")
-        setSearch(new Map(search))
+        parseAutocomplete(data, search.push.bind(search))
+        setSearch(Array.from(search))
         setAutoComplete("")
-        
+        onUpdate(search, "")
     }
 
     function handleBackspace(): boolean {
         if (autocomplete != "") return false
-        const lastKey = Array.from(search.keys())[search.size - 1]
-        if (!lastKey) return false
-        let lastValue = search.get(lastKey)
-        search.delete(lastKey)
-        if (lastValue != "") lastValue = ":" + lastValue
-        setAutoComplete(`${lastKey}${lastValue}`)
+        
+        let lastValue = search.pop()
+        if (!lastValue) return false
+        setSearch(Array.from(search))
+
+        if (lastValue.value != "") lastValue.value = ":" + lastValue.value;
+
+        setAutoComplete(`${lastValue.inverted ? "!" : ""}${lastValue.key}${lastValue.value}`)
         return true
     }
 
-    function removeParameter(key: string) {
-        search.delete(key)
-        setSearch(new Map(search))
+    function createValueSuggestions(searchText: string): string[] {
+        const key = cutInvertPrefix(searchText).split(":")[0]
+        const result = receptions.map(reception => {
+            const searchKey = searchKeys.find(k => key.startsWith(k.name))
+            if (!searchKey || !searchKey.receptionKey) return null
+            switch (searchKey.type) {
+                case "time":
+                    return DateTime.fromISO(reception[searchKey.receptionKey]!.toString()).setZone("Asia/Tokyo").toFormat("HH:mm")
+                case "number":
+                    return reception[searchKey.receptionKey]?.toString()
+            }
+            return null
+        }).filter(p => p != null).filter(p => p.startsWith(searchText.split(":").slice(1).join(":")))
+        
+        return result
     }
 
-    const filterParameter: OptionsFilter = (({ options, search: searchText }) => {
-        return (options as ComboboxItem[]).filter((option) => {
-            return !Array.from(search.keys()).includes(option.label.split(":")[0])
-        });
-    })
+    function createKeySuggestions(searchText: string): string[] {
+        let result = []
+        if (!searchText.startsWith("!")) result.push("!")
+        result.push(...searchKeys.map(p => `${p.name}${p.type == "boolean" ? "" : ":"}`).map(p => `${searchText.startsWith("!") ? "!" : ""}${p}`))
+        return result
+    }
+
+    function removeParameter(index: number) {
+        const ret = Array.from(search).filter((_, i) => i != index)
+        setSearch(ret)
+        onUpdate(ret, "")
+    }
+
+
+    function clearFilter() {
+        setSearch([])
+        setAutoComplete("")
+        onUpdate([], "")
+    }
+
+    const createOption = (option: string) => {
+        const searchKey = searchKeys.find(p => cutInvertPrefix(option).startsWith(p.name))
+        let description = searchKey?.description || ""
+        if (option == "!") description = "フィルタを反転する"
+        return (
+            <Combobox.Option value={cutInvertPrefix(option)} key={option}>
+                <Group align="center" style={{width: "100%"}} >
+                    <Text>{option}</Text>
+                    <div style={{"flexGrow": "1"}}>
+                        <Divider label={
+                            `${autocomplete.startsWith("!") ? "(反転) " : ""}${description}`
+                        } labelPosition="right" variant="dotted" />
+                    </div>
+                </Group>
+            </Combobox.Option>
+        )
+    }
+
+    function handleOptionSubmit(value: string) {
+        let updated = autocomplete
+        value == "!" ? updated = "!" + autocomplete : (
+            updated.endsWith(":") || updated == "" ? updated += value : updated = value
+        )
+        setAutoComplete(updated)
+    }
+
+    function createSuggestions(searchText: string) {
+        const result = searchText.includes(":") ? createValueSuggestions(searchText) : createKeySuggestions(searchText)
+        return result
+    }
+
 
     return (
-        <InputBase style={{width: "100%"}} component="div" error={autocompleteError}>
+        <InputBase component="div" style={{width: "100%"}} error={autocompleteError} rightSection={(
+            <Input.ClearButton onClick={clearFilter}></Input.ClearButton>
+        )}>
             <Flex align="center">
                 <PillGroup>
-                    {Array.from(search.entries()).map(([key, value]) => (
-                        <Pill key={key} withRemoveButton onRemove={() => removeParameter(key)}>{key}: {value != "" ? value : "true"}</Pill>
+                    {search.map((param, index) => (
+                        <Pill key={`${param.key}-${index}`} withRemoveButton onRemove={() => removeParameter(index)}>{param.inverted ? "!" : ""}{param.key}{param.value != "" ? ": " + param.value : ""}</Pill>
                     ))}
                 </PillGroup>
-                <Autocomplete style={{"flexGrow": "1"}} filter={filterParameter} variant="unstyled" value={autocomplete} placeholder="検索..." data={
-                    keys.map(p => `${p.name}${p.isBoolean ? "" : ":"}`)
-                } onChange={
-                    (value) => setAutoComplete(value)
-                } onKeyDown={(event) => {
-                    if (event.key == "Enter" && autocomplete.includes(":")) {
-                        addParameter(autocomplete);
-                        setAutoComplete("")
-                    } else if (event.key == "Backspace") {
-                        handleBackspace() && event.preventDefault()
-                    }
-                }}
-                ></Autocomplete>
-                
+                <Combobox store={autocompleteBox} onOptionSubmit={handleOptionSubmit}>
+                    <Combobox.Target>
+                        <Input placeholder="検索... (!でフィルタを反転)" variant="unstyled" styles={{input: {border: "none"}}} value={autocomplete} onInput={
+                            (event) => setAutoComplete(event.currentTarget.value)
+                        } style={{flexGrow: "1"}} onKeyDown={(event) => {
+                            if (event.key == "Enter" && autocomplete.includes(":")) {
+                                addParameter(autocomplete);
+                                setAutoComplete("")
+                            } else if (event.key == "Backspace") {
+                                handleBackspace() && event.preventDefault()
+                            }
+                        }} onFocus={() => autocompleteBox.openDropdown()} onClick={() => autocompleteBox.openDropdown()} onBlur={() => autocompleteBox.closeDropdown()}></Input>
+                    </Combobox.Target>
+                    <Combobox.Dropdown hidden={suggestions.length === 0}>
+                        <Combobox.Options mah={200} style={{ overflowY: 'auto' }}>
+                            {suggestions.map(createOption)}
+                        </Combobox.Options>
+                    </Combobox.Dropdown>
+                </Combobox>
             </Flex>
         </InputBase>
-        
     )
 }) satisfies React.FC<Props>

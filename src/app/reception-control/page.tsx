@@ -9,19 +9,7 @@ import { useQRCode } from 'next-qrcode';
 import './ReceptionControlPage.css';
 import { DateTime } from "luxon";
 import SearchBox from "./SearchBox";
-
-interface ReceptionData {
-    id: number;
-    time: string;
-    number: number;
-    name?: string;
-    alignment: boolean;
-    gameStartTime?: string;
-    gameStarted?: boolean;
-    timeTaken?: number | null;
-    cancelled?: boolean
-    difficulty: string
-}
+import { ReceptionData, searchKeys, SearchParameter } from "./search";
 
 const difficulties = process.env.NEXT_PUBLIC_DIFFICULTY?.split(",") || []
 
@@ -37,7 +25,6 @@ const ReceptionControlPage = () => {
     const [dirtyIds, setDirtyIds] = useState<Set<number>>(new Set());
     const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
 
-    const [searchText, setSearchText] = useState<string[]>([]);
     const [filteredData, setFilteredData] = useState<ReceptionData[]>()
 
     const fetchData = async () => {
@@ -95,46 +82,39 @@ const ReceptionControlPage = () => {
         )
     }
 
-    function isMatched(reception: ReceptionData, filters: Map<string, string>, filter: string): boolean {
-        
+    function isMatched(reception: ReceptionData, filters: SearchParameter[], filter: string): boolean {
         let required = 0
         let include = 0
         // console.log(filters)
-        for (const key of Array.from(filters.keys())) {
-            const param = filters.get(key)!
-            switch (key) {
-                case "id":
-                    if (!Number.isNaN(param) && reception.id == Number.parseInt(param)) required++
-                    break;
-                case "time":
-                    if (matchTime(reception.time, param)) required++
-                    break;
-                case "started":
-                    if (reception.gameStarted) required++
-                    break;
-                case "game":
-                    if (reception.gameStartTime && matchTime(reception.gameStartTime, param)) required++
-                    break;
-                case "person":
-                    if (!Number.isNaN(param) && reception.number == Number.parseInt(param)) required++
-                    break
-                default:
-                    if (reception.id.toString() == filter) include++
-                    if (reception.name?.startsWith(filter)) include++
-                    if (DateTime.fromFormat(filter, "H:m").isValid) {
-                        if (reception.gameStartTime && matchTime(reception.gameStartTime, filter)) include++
-                        if (matchTime(reception.time, filter)) include++
-                    }
+        for (const { key, value, inverted } of filters) {
+            if (key) {
+                // パラメータ指定検索
+                const result = searchKeys.find(p => p.name == key)?.match(reception, value)
+                if (result === undefined) continue
+                if (inverted) {
+                    required += result ? 0 : 1
+                } else {
+                    required += result ? 1 : 0
+                }
+            } else {
+                // あいまい検索
+                if (reception.id.toString() == filter) include++
+                if (reception.name?.startsWith(filter)) include++
+                if (DateTime.fromFormat(filter, "H:m").isValid) {
+                    if (reception.gameStartTime && matchTime(reception.gameStartTime, filter)) include++
+                    if (matchTime(reception.time, filter)) include++
+                }
             }
         }
+        
         // console.log("in:", filters, ", in2:", filter)
         // console.log("reception:", reception)
         // console.log("id: %d, req: %d, inc: %d", reception.id, required, include)
-        return (filters.size > 0 && filters.size <= required) || include >= 1
+        return (new Set(filters.map(p => `${p.inverted}-${p.key}`)).size <= required) || include >= 1
     }
 
-    const searchUpdate = (values: Map<string, string>, raw: string) => {
-        if (values.size == 0 && raw == "") {
+    const searchUpdate = (values: SearchParameter[], raw: string) => {
+        if (values.length == 0 && raw == "") {
             setFilteredData(data)
             return
         }
@@ -291,16 +271,7 @@ const ReceptionControlPage = () => {
                 </Text>
             </div>
             <div className="toolbar">
-                <SearchBox onUpdate={searchUpdate} />
-                <Tooltip label={showUncheckedOnly ? "全員表示" : "未チェックのみ表示"}>
-                    <ActionIcon
-                        color={showUncheckedOnly ? "orange" : "gray"}
-                        size="lg"
-                        onClick={() => setShowUncheckedOnly((v) => !v)}
-                    >
-                        {showUncheckedOnly ? <FaEye /> : <FaEyeSlash />}
-                    </ActionIcon>
-                </Tooltip>
+                <SearchBox onUpdate={searchUpdate} receptions={data || []} />
                 <Tooltip label="Reload Data">
                     <Button className="toolbar-button" onClick={fetchData}>
                         <RxReload />

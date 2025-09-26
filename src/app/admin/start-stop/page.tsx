@@ -338,7 +338,6 @@ const StartStopPage = () => {
     }
 
     async function updateDifficulty(data: string) {
-        console.log(data)
         setDifficulty(data)
         for (const participant of queuedParticipants) {
             const response = await fetch("/api/updateDifficulty", {

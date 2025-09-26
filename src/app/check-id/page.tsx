@@ -52,112 +52,113 @@ const CheckIdPage = () => {
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const [qrUrl, setQrUrl] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // トークンがない場合は直打ちとみなして拒否
-                if (!token) {
-                    setError('セッショントークンが無効です。正しいQRコードからアクセスしてください。');
-                    setLoading(false);
-                    return;
-                }
-
-
-                // localStorageから既存のIDを確認（クライアントサイドでのみ実行）
-                let existingId = null;
-                let existingToken = null;
-
-                if (typeof window !== 'undefined') {
-                    existingId = localStorage.getItem('currentId');
-                    existingToken = localStorage.getItem('currentToken');
-                }
-
-                // 既存のIDがある場合、そのIDのデータを取得してchecker状態を確認
-                console.log('既存のID:', existingId);
-                console.log('現在のID:', id);
-                if (existingId != id) {
-                    console.log("重複予約")
-                    try {
-                        const existingResponse = await fetch(`/api/checkid?id=${existingId}&token=${existingToken}`);
-                        if (existingResponse.ok) {
-                            const existingData = await existingResponse.json();
-                            console.log('既存のIDのデータ:', existingData.checker);
-                            // すでに終了済みの予約の場合
-                            if (existingData.ended === true) {
-                                localStorage.clear()
-                                existingId = null
-                                existingToken = null
-                            } else if (existingData.checker === true) {
-                                setError(`一度目の受付が終わらないと二度目の受付はできません。既存のID: ${existingId}`);
-                                setLoading(false);
-                                return;
-                            }
-                        }
-                    } catch {
-                        // 既存IDのデータ取得に失敗した場合は続行
-                        console.log('既存IDのデータ取得に失敗しました');
-                    }
-                }
-
-                // まずデータを取得（トークン付き）
-                const response = await fetch(`/api/checkid?id=${id}&token=${token}`);
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        throw new Error('セッショントークンが無効です。正しいQRコードからアクセスしてください。');
-                    }
-                    throw new Error('データの取得に失敗しました');
-                }
-                const result = await response.json();
-                console.log('取得したデータ:', result);
-                setData(result);
-
-                // 既に名前が設定されている場合はモーダルを表示しない
-                if (!result.name || result.name === '未入力') {
-                    setNameModalOpen(true);
-                } else {
-                    // 既に名前がある場合は自動的にチェックイン状態にする
-                    setCheckInStatus('success');
-                }
-            } catch (err: unknown) {
-                if (err instanceof Error) {
-                    setError(err.message);
-                } else {
-                    setError('予期しないエラーが発生しました');
-                }
-                setCheckInStatus('error');
-                // エラーの場合もIDとトークンを保存（クライアントサイドでのみ実行）
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('currentId', id || '');
-                    localStorage.setItem('currentToken', token || '');
-                    localStorage.setItem('checkInStatus', 'error');
-                }
-            } finally {
+    async function fetchData() {
+        try {
+            if (!id) {
+                setError('IDが指定されていません');
                 setLoading(false);
+                return
             }
-        };
+            // トークンがない場合は直打ちとみなして拒否
+            if (!token) {
+                setError('セッショントークンが無効です。正しいQRコードからアクセスしてください。');
+                setLoading(false);
+                return;
+            }
 
-        if (id) {
-            fetchData();
-        } else {
-            setError('IDが指定されていません');
+
+            // localStorageから既存のIDを確認（クライアントサイドでのみ実行）
+            let existingId = null;
+            let existingToken = null;
+
+            if (typeof window !== 'undefined') {
+                existingId = localStorage.getItem('currentId');
+                existingToken = localStorage.getItem('currentToken');
+            }
+
+            // 既存のIDがある場合、そのIDのデータを取得してchecker状態を確認
+            console.log('既存のID:', existingId);
+            console.log('現在のID:', id);
+            if (existingId && existingId != id) {
+                console.log("重複予約")
+                try {
+                    const existingResponse = await fetch(`/api/checkid?id=${existingId}&token=${existingToken}`);
+                    if (existingResponse.ok) {
+                        const existingData = await existingResponse.json();
+                        console.log('既存のIDのデータ:', existingData.checker);
+                        // すでに終了済みの予約の場合
+                        if (existingData.ended) {
+                            localStorage.clear()
+                            existingId = null
+                            existingToken = null
+                        } else if (existingData.checker === true) {
+                            setError(`一度目の受付が終わらないと二度目の受付はできません。既存のID: ${existingId}`);
+                            setLoading(false);
+                            return;
+                        }
+                    } else {
+                        localStorage.clear()
+                        existingId = null
+                        existingToken = null
+                    }
+                } catch {
+                    // 既存IDのデータ取得に失敗した場合は続行
+                    console.log('既存IDのデータ取得に失敗しました');
+                }
+            }
+
+            // まずデータを取得（トークン付き）
+            const response = await fetch(`/api/checkid?id=${id}&token=${token}`);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('セッショントークンが無効です。正しいQRコードからアクセスしてください。');
+                }
+                throw new Error('データの取得に失敗しました');
+            }
+            const result = await response.json();
+            console.log('取得したデータ:', result);
+            setData(result);
+            await handleCheckIn(result)
+
+        } catch (err: unknown) {
+            if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('予期しないエラーが発生しました');
+            }
+            setCheckInStatus('error');
+            // エラーの場合もIDとトークンを保存（クライアントサイドでのみ実行）
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('currentId', id || '');
+                localStorage.setItem('currentToken', token || '');
+                localStorage.setItem('checkInStatus', 'error');
+            }
+        } finally {
             setLoading(false);
         }
+    }
+
+    useEffect(() => {
+        (async () => {
+            await fetchData()
+        })()
     }, [id, token]);
 
-    const handleCheckIn = async () => {
+    const handleCheckIn = async (receptionData?: ReceptionData) => {
+        setLoading(true);
         if (!id) {
             alert('IDが指定されていません');
             return;
         }
-
+        const oldName = receptionData?.name || data?.name
         try {
             // 名前が入力されていない場合は「名無し」として保存
-            const nameToSave = participantName.trim() || '名無し';
+            const nameToSave = participantName.trim() || oldName || '名無し';
             console.log('updateAlignment呼び出し:', { id, name: nameToSave });
             const checkInResponse = await fetch(`/api/updateAlignment?id=${id}&name=${encodeURIComponent(nameToSave)}`);
             console.log('updateAlignmentレスポンス:', checkInResponse.status, checkInResponse.ok);
 
-            if (checkInResponse.ok) {
+            if (checkInResponse.status == 200) {
                 const updateData = await checkInResponse.json();
                 console.log('updateAlignment成功:', updateData);
 
@@ -173,19 +174,7 @@ const CheckIdPage = () => {
                     localStorage.setItem('currentToken', token || '');
                     localStorage.setItem('checkInStatus', 'success');
                 }
-
-                // ゲーム開始の準備完了を通知（初回チェックイン時のみ）
-                if (checkInStatus === 'pending') {
-                    setTimeout(() => {
-                        alert('チェックイン完了！ゲーム開始の準備ができました。');
-                        // ページをリロード
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    // すぐリロードする場合
-                    window.location.reload();
-                }
-            } else {
+            } else if (!checkInResponse.ok) {
                 const errorData = await checkInResponse.json();
                 console.error('updateAlignment失敗:', errorData);
                 setCheckInStatus('error');
@@ -196,12 +185,12 @@ const CheckIdPage = () => {
             setCheckInStatus('error');
             alert('チェックイン中にエラーが発生しました');
         }
+        setLoading(false);
     };
 
     const handleNameCancel = () => {
         // 名前をキャンセルした場合も「名無し」としてチェックイン
         setParticipantName('');
-        handleCheckIn();
     };
 
     const handleEditName = () => {
@@ -613,7 +602,7 @@ const CheckIdPage = () => {
                         </Button>
                         <Button
                             color="blue"
-                            onClick={handleCheckIn}
+                            onClick={() => handleCheckIn()}
                             leftSection={<IconCheck size={16} />}
                         >
                             チェックイン
