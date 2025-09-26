@@ -5,7 +5,7 @@ import { Reception } from "@prisma/client";
 export async function PATCH(request: NextRequest) {
     try {
         const body = await request.json();
-        const { id, name, timeTaken, cancelled } = body as { id?: number; name?: string | null; timeTaken?: number | null; cancelled: boolean };
+        const { id, name, timeTaken, cancelled, difficulty } = body as Partial<Reception>;
 
         if (!id) {
             return NextResponse.json({ error: "ID が指定されていません" }, { status: 400 });
@@ -15,6 +15,7 @@ export async function PATCH(request: NextRequest) {
         if (name !== undefined) payload.name = name;
         if (timeTaken !== undefined) payload.timeTaken = timeTaken;
         if (cancelled !== undefined) payload.cancelled = cancelled;
+        if (difficulty !== undefined) payload.difficulty = difficulty;
 
         const updated = await prisma.reception.update({
             where: { id },

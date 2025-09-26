@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useState } from "react";
-import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge, Stack, Autocomplete, OptionsFilter, ComboboxItem, TagsInput } from '@mantine/core';
+import { Table, Text, Loader, Center, TextInput, Button, Tooltip, ActionIcon, Modal, Group, NumberInput, Badge, Notification, NativeSelect, LoadingOverlay } from '@mantine/core';
 import { IconDeviceFloppy, IconRestore, IconQrcode, IconX } from '@tabler/icons-react';
 import { RxReload } from "react-icons/rx";
 import { FaEyeSlash, FaEye } from "react-icons/fa";
@@ -20,7 +20,10 @@ interface ReceptionData {
     gameStarted?: boolean;
     timeTaken?: number | null;
     cancelled?: boolean
+    difficulty: string
 }
+
+const difficulties = process.env.NEXT_PUBLIC_DIFFICULTY?.split(",") || []
 
 const ReceptionControlPage = () => {
     const [data, setData] = useState<ReceptionData[]>([]);
@@ -38,8 +41,8 @@ const ReceptionControlPage = () => {
     const [filteredData, setFilteredData] = useState<ReceptionData[]>()
 
     const fetchData = async () => {
-        setLoading(true);
         try {
+            setLoading(true);
             const response = await fetch('/api/getReceptionList');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -68,7 +71,9 @@ const ReceptionControlPage = () => {
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     // 未保存データがある場合の離脱警告
     useEffect(() => {
@@ -205,8 +210,6 @@ const ReceptionControlPage = () => {
         }
     };
 
-
-
     const handleDeleteClick = (row: ReceptionData) => {
         setDeleteTarget(row);
         setDeleteModalOpen(true);
@@ -223,10 +226,9 @@ const ReceptionControlPage = () => {
             });
 
             if (response.ok) {
-                // 成功したらデータから削除
-                setData((prev) => prev.filter((row) => row.id !== deleteTarget.id));
                 setDeleteModalOpen(false);
                 setDeleteTarget(null);
+                await fetchData()
             } else {
                 const errorData = await response.json();
                 console.error('削除に失敗しました:', errorData.error);
@@ -246,32 +248,40 @@ const ReceptionControlPage = () => {
             if (!response.ok) {
                 const err = await response.json();
                 alert('予約キャンセルに失敗しました: ' + (err.error || 'unknown'));
-            } else {
-                alert(`予約(ID: ${row.id})をキャンセルしました`)
-                setData((prev) => prev.map((r) => r.id === row.id ? { ...r, ...{cancelled: true} } : r));
             }
         } catch (e) {
             console.error(e);
             alert('予約キャンセル中にエラーが発生しました');
         } finally {
-            setSavingIds((prev) => {
-                const next = new Set(prev);
-                next.delete(row.id);
-                return next;
-            });
+            await fetchData()
         }
     }
 
-    if (loading) {
-        return (
-            <Center className="loading-container">
-                <Loader size="lg" />
-            </Center>
-        );
+    async function handleChangeDifficulty(row: ReceptionData, difficulty: string) {
+        try {
+            const response = await fetch('/api/updateReception', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: row.id, difficulty: difficulty }),
+            });
+            if (!response.ok) {
+                const err = await response.json();
+                alert('難易度の変更に失敗しました: ' + (err.error || 'unknown'));
+            } else {
+                setData((prev) => prev.map((r) => r.id === row.id ? { ...r, ...{cancelled: true} } : r));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('難易度の変更に失敗しました');
+        } finally {
+            await fetchData()
+        }
     }
+
 
     return (
         <div className="reception-control-container">
+            <LoadingOverlay visible={loading}></LoadingOverlay>
             <Text size="xl" mb="lg">
                 Reception Control
             </Text>
@@ -318,6 +328,7 @@ const ReceptionControlPage = () => {
                         <th>人数</th>
                         <th>参加者名</th>
                         <th>スマホ連携</th>
+                        <th>難易度</th>
                         <th>ゲーム開始時間</th>
                         <th>タイム</th>
                         <th>操作</th>
@@ -352,6 +363,9 @@ const ReceptionControlPage = () => {
                                     />
                                 </td>
                                 <td className="table-cell">{row.alignment ? '済' : '未'}</td>
+                                <td className="table-cell">
+                                    <NativeSelect onChange={(v) => handleChangeDifficulty(row, v.currentTarget.value)} value={row.difficulty} data={difficulties} />
+                                </td>
                                 <td className="table-cell">
                                     {row.gameStartTime
                                         ? (() => {

@@ -27,7 +27,9 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        return NextResponse.json({ rankings });
+        const filtered = rankings.filter((p) => p.timeTaken && p.timeTaken <= 600);
+
+        return NextResponse.json({ rankings: filtered });
     } catch (error) {
         console.error("ランキング取得エラー:", error);
         return NextResponse.json({ error: "ランキングの取得に失敗しました" }, { status: 500 });

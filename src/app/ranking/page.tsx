@@ -41,6 +41,7 @@ const RankingPage = () => {
 
     const fetchRankings = async () => {
         try {
+            setLoading(true)
             const response = await fetch(`/api/ranking?difficulty=${difficulty}`);
             const data = await response.json();
             setRankings(data.rankings || []);
@@ -85,9 +86,11 @@ const RankingPage = () => {
 
     const updateDifficulty = async (data: string) => {
         setDifficulty(data)
-        setLoading(true)
-        await fetchRankings()
     }
+
+    useEffect(() => {
+        fetchRankings()
+    }, [difficulty])
 
     useEffect(() => {
         updateDifficulty("EASY")

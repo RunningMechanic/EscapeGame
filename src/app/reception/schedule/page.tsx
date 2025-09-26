@@ -33,6 +33,7 @@ interface ReceptionData {
     alignment: boolean;
     cancelled: boolean
     ended: boolean
+    number: number
 }
 
 const ReceptionSchedulePage = () => {
@@ -138,7 +139,7 @@ const ReceptionSchedulePage = () => {
                 const rTime = DateTime.fromISO(r.time).setZone("Asia/Tokyo");
                 return rTime.hasSame(targetUTC, "minute")
             })
-            .reduce((sum, r) => sum + ((r as any).number || 0), 0);
+            .reduce((sum, r) => sum + (r.number || 0), 0);
 
         const remaining = Math.max(0, maxGroupSize - used);
         console.log('remaining seats:', remaining);
@@ -191,13 +192,14 @@ const ReceptionSchedulePage = () => {
                         <Grid gutter="lg">
                             {timeOptions.map((time) => {
                                 const remaining = remainingAt(time);
-                                const booked = remaining === 0;
                                 const isSelected = startTime === time;
                                 const [hours, minutes] = time.split(':').map(Number);
                                 const endMinutes = minutes + 10;
                                 const endHours = hours + Math.floor(endMinutes / 60);
                                 const finalMinutes = endMinutes % 60;
                                 const endTimeStr = `${endHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`;
+                                const disabled = DateTime.fromFormat(time, "H:m").setZone("Asia/Tokyo").diffNow().toMillis() < 0
+                                const booked = remaining === 0 || disabled;
 
                                 return (
                                     <Grid.Col key={time} span={{ base: 6, sm: 4, md: 3 }}>
@@ -239,9 +241,9 @@ const ReceptionSchedulePage = () => {
                                                 >
                                                     〜 {endTimeStr}
                                                 </Text>
-                                                {booked && (
+                                                {remaining === 0 && (
                                                     <Badge size="sm" color="red" variant="light" radius="md">
-                                                        予約済み
+                                                        満席
                                                     </Badge>
                                                 )}
 {!booked && (
