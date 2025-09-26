@@ -20,10 +20,9 @@ export async function GET(request: NextRequest) {
         // 同時刻の合計人数を集計
         const bookings = await prisma.reception.findMany({
             where: { time: targetTime },
-            select: { number: true },
         });
 
-        const used = bookings.reduce((sum, b) => sum + (b.number || 0), 0);
+        const used = bookings.filter(p => p.alignment && !p.cancelled && !p.ended).reduce((sum, b) => sum + (b.number || 0), 0);
         const remaining = Math.max(0, maxGroupSize - used);
         return NextResponse.json({ available: remaining > 0, remaining, max: maxGroupSize });
     } catch (error) {

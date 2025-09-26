@@ -31,6 +31,8 @@ interface ReceptionData {
     time: string;
     room: number;
     alignment: boolean;
+    cancelled: boolean
+    ended: boolean
 }
 
 const ReceptionSchedulePage = () => {
@@ -131,7 +133,7 @@ const ReceptionSchedulePage = () => {
         // JST を UTC に変換（-9時間）
         const targetUTC = activeDate
         const used = receptions
-            .filter(r => r.alignment)
+            .filter(r => r.alignment && !r.cancelled && !r.ended)
             .filter(r => {
                 const rTime = DateTime.fromISO(r.time).setZone("Asia/Tokyo");
                 return rTime.hasSame(targetUTC, "minute")

@@ -38,9 +38,6 @@ const RankingPage = () => {
     const [loading, setLoading] = useState(true);
     const [difficulty, setDifficulty] = useState<string>("EASY")
 
-    useEffect(() => {
-        updateDifficulty("EASY");
-    }, []);
 
     const fetchRankings = async () => {
         try {
@@ -86,6 +83,17 @@ const RankingPage = () => {
         }
     };
 
+    const updateDifficulty = async (data: string) => {
+        setDifficulty(data)
+        setLoading(true)
+        await fetchRankings()
+    }
+
+    useEffect(() => {
+        updateDifficulty("EASY")
+    }, [])
+
+
     if (loading) {
         return (
             <Container size="md" py="xl">
@@ -99,11 +107,6 @@ const RankingPage = () => {
         );
     }
 
-    const updateDifficulty = async (data: string) => {
-        setDifficulty(data)
-        setLoading(true)
-        await fetchRankings()
-    }
 
     return (
         <Container size="md" py="xl">
