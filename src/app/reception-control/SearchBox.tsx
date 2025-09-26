@@ -140,12 +140,24 @@ export default (({ onUpdate, receptions }) => {
         )
     }
 
-    function handleOptionSubmit(value: string) {
-        let updated = autocomplete
-        value == "!" ? updated = "!" + autocomplete : (
-            updated.endsWith(":") || updated == "" ? updated += value : updated = value
-        )
-        setAutoComplete(updated)
+    function handleOptionSubmit(option: string) {
+        let invert = "", key = "", value = ""
+        if (autocomplete.startsWith("!")) invert = "!"
+        
+        if (cutInvertPrefix(autocomplete).split(":")[0] == option) {
+            key = option
+        } else {
+            const searchKey = searchKeys.find(p => cutInvertPrefix(autocomplete).split(":")[0] == p.name)
+            key = searchKey ? searchKey.name + ":" : ""
+        }
+       
+        if (autocomplete.split(":").length >= 2 && cutInvertPrefix(autocomplete).split(":").slice(1).join(":") == option) {
+            value = option
+        } else if (key != cutInvertPrefix(option)) {
+            value = option
+        }
+
+        setAutoComplete(invert + key + value)
     }
 
     function createSuggestions(searchText: string) {
