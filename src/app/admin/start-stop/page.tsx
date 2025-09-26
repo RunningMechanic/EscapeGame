@@ -300,6 +300,7 @@ const StartStopPage = () => {
         setPendingCandidate(null);
         setAddParticipantScan(true);
         setScanStatus("waiting");
+        startAddParticipantScan()
     };
 
     /** ------------------ 待機中一括開始 ------------------ **/
