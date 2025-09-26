@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     data: {
       time: timeObj,
       number: count,
+      name: "名無し"
       // 他のカラムも必要なら追加
     },
   });
