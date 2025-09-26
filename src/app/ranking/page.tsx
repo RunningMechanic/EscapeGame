@@ -33,6 +33,7 @@ interface RankingData {
     time: string;
 }
 
+const difficulties = process.env.NEXT_PUBLIC_DIFFICULTY?.split(",") || []
 const RankingPage = () => {
     const [rankings, setRankings] = useState<RankingData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -125,7 +126,7 @@ const RankingPage = () => {
                     <Text c="dimmed" ta="center" size="lg">
                         最速脱出タイム TOP 5
                     </Text>
-                    <SegmentedControl fullWidth data={["EASY", "HARD"]} value={difficulty} onChange={updateDifficulty}></SegmentedControl>
+                    <SegmentedControl fullWidth data={difficulties} value={difficulty} onChange={updateDifficulty}></SegmentedControl>
                 </Stack>
 
                 {/* ランキング一覧 */}

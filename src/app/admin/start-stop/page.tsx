@@ -41,7 +41,9 @@ import { parse } from "path";
 
 // 型は `./types` から取得
 
-type Difficulty = string | "EASY" | "HARD"
+type Difficulty = string
+
+const difficulties = process.env.NEXT_PUBLIC_DIFFICULTY?.split(",") || []
 
 const StartStopPage = () => {
     const router = useRouter();
@@ -63,7 +65,7 @@ const StartStopPage = () => {
     const [stopGameScan, setStopGameScan] = useState(false);
     const [stopGameError, setStopGameError] = useState<string | null>(null);
     
-    const [difficulty, setDifficulty] = useState<Difficulty>("EASY");
+    const [difficulty, setDifficulty] = useState<Difficulty>(difficulties[0]);
 
     /** ------------------ ゲーム開始 ------------------ **/
     const startGame = useCallback(
@@ -373,7 +375,7 @@ const StartStopPage = () => {
                         <Divider></Divider>
                         <Stack justify="center" align="stretch">
                             <Center>難易度選択</Center>
-                            <SegmentedControl disabled={scanStatus == "started" || scanStatus == "stopped"} value={difficulty} onChange={updateDifficulty} data={["EASY", "HARD"]}></SegmentedControl>
+                            <SegmentedControl disabled={scanStatus == "started" || scanStatus == "stopped"} value={difficulty} onChange={updateDifficulty} data={difficulties}></SegmentedControl>
                         </Stack>
                     </Stack>
                 </Card>
