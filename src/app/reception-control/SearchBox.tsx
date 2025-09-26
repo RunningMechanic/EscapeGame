@@ -116,10 +116,10 @@ export default (({ onUpdate }) => {
             <Flex align="center">
                 <PillGroup>
                     {Array.from(search.entries()).map(([key, value]) => (
-                        <Pill withRemoveButton onRemove={() => removeParameter(key)}>{key}: {value != "" ? value : "true"}</Pill>
+                        <Pill key={key} withRemoveButton onRemove={() => removeParameter(key)}>{key}: {value != "" ? value : "true"}</Pill>
                     ))}
                 </PillGroup>
-                <Autocomplete filter={filterParameter} variant="unstyled" value={autocomplete} placeholder="検索..." data={
+                <Autocomplete style={{"flexGrow": "1"}} filter={filterParameter} variant="unstyled" value={autocomplete} placeholder="検索..." data={
                     keys.map(p => `${p.name}${p.isBoolean ? "" : ":"}`)
                 } onChange={
                     (value) => setAutoComplete(value)
